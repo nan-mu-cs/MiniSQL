@@ -452,8 +452,279 @@ namespace bpt {
                 InsertInParent(pare,mkey,newpare);
             }
         }
+        void deleteNode(const value_t &p,const key_t &key,const value_t &target){
+            node_t node;
+            node.children = new record_t [meta.order+1];
+            map(&node,p);
+            int i;
+            for(i = 0;i<node.n;i++)
+                if(node.children[i].key == key)
+                    break;
+            while(i<node.n){
+                node.children[i].key = node.children[i+1].key;
+                i++;
+            }
+            for(i = 0;i<=node.n;i++)
+                if(node.children[i].value == target)
+                    break;
+            while(i<= node.n){
+                node.children[i].value = node.children[i+1].value;
+                i++;
+            }
+            node.n--;
+            unmap(&node, p);
+            delete [] node.children;
+        }
+        void UnallocStorage(const value_t &p){
+            ;
+        }
+        key_t FindCommonKey(const value_t &pare,const value_t &p){
+            node_t node;
+            node.children = new record_t [meta.order+1];
+            map(&node,pare);
+            key_t result;
+            for(int i = 0;i<node.n;i++)
+                if(node.children[i].value == p){
+                    result = node.children[i].key;
+                    break;
+                }
+            delete [] node.children;
+            return result;
+        }
+        bool deleteEntry(const value_t &p,const key_t &key,const value_t &target){
+            deleteNode(p,key,target);
+            node_t node;
+            node.children = new record_t [meta.order+1];
+            map(&node,p);
+            if(meta.rootOffset == p){
+                if(node.isleaf){
+                    delete [] node.children;
+                    return true;
+                }
+                else if(node.n == 0){
+                    meta.rootOffset = node.children[0].value;
+                    UnallocStorage(p);
+                    unmap(&meta,OFFSET_META,sizeof(meta));
+                    delete [] node.children;
+                    return true;
+                }
+                else {
+                    delete []  node.children;
+                    return true;
+                }
+            }
+            int pointerSize,keySize;
+            int pointerLowbound,keyLowbound;
+            pointerSize = meta.order+1;
+            keySize = meta.order;
+            if(pointerSize%2)
+                pointerLowbound = pointerSize/2 + 1;
+            else pointerLowbound = pointerSize/2;
+            if(keySize%2)
+                keyLowbound = keySize/2 + 1;
+            else keyLowbound = keySize/2;
+            if((node.isleaf&&node.n<keyLowbound)||(!node.isleaf&&node.n+1<pointerLowbound)){
+                bool isPre = false;
+                off_t sibling = -1;
+                if(node.pre!=-1){
+                    isPre = true;
+                    sibling = node.pre;
+                }
+                else if(node.next!=-1){
+                    sibling = node.next;
+                }
+                if(sibling == -1){
+                    delete [] node.children;
+                    return false;
+                }
+                key_t nkey;
+                if(isPre)
+                    nkey = FindCommonKey(node.parent,sibling);
+                else nkey = FindCommonKey(node.parent,p);
+                node_t siblingnode;
+                siblingnode.children = new record_t [meta.order+1];
+                map(&siblingnode,sibling);
+                if((node.isleaf&&siblingnode.n+node.n<=meta.order)
+                   ||(!node.isleaf&&siblingnode.n+node.n+1<=meta.order)){
+                    if(!isPre)
+                        SwapNode(node,p,siblingnode,sibling);
+                    if(!node.isleaf)
+                        AppendInternalNode(sibling,siblingnode,nkey,node);
+                    else AppendLeafNode(siblingnode,nkey,node);
+                    if(isPre)
+                        siblingnode.next = node.next;
+                    else siblingnode.pre = node.pre;
+                    unmap(&siblingnode, sibling);
+                    unmap(&node,p);
+                    UnallocStorage(p);
+                    delete [] siblingnode.children;
+                    delete [] node.children;
+                    deleteEntry(node.parent, nkey, p);
+                }
+                else {
+                    if(isPre){
+                        if(!node.isleaf){
+                            value_t lastvalue = siblingnode.children[siblingnode.n].value;
+                            siblingnode.n--;
+                            key_t pkey = siblingnode.children[siblingnode.n-1].key;
+                            InsertFromHead(node,nkey,lastvalue);
+                            ReplaceKey(node.parent,nkey,pkey);
+                        }
+                        else {
+                            value_t lastvalue = siblingnode.children[siblingnode.n-1].value;
+                            key_t lastkey = siblingnode.children[siblingnode.n-1].key;
+                            siblingnode.n--;
+                            InsertFromHead(node, lastkey, lastvalue);
+                            ReplaceKey(node.parent, nkey, lastkey);
+                        }
+                    }
+                    else {
+                        if(!node.isleaf){
+                            value_t firstvalue = siblingnode.children[0].value;
+                            key_t firstkey = siblingnode.children[0].key;
+                            RemoveFromHead(siblingnode);
+                            InsertFromTail(node,nkey,firstvalue);
+                            ReplaceKey(node.parent, nkey, firstkey);
+                        }
+                        else {
+                            value_t firstvalue = siblingnode.children[0].value;
+                            key_t firstkey = siblingnode.children[0].key;
+                            RemoveFromHead(siblingnode);
+                            node.children[node.n].key = firstkey;
+                            node.children[node.n].value = firstvalue;
+                            node.n++;
+                            ReplaceKey(node.parent, firstkey, siblingnode.children[0].key);
+                        }
+                    }
+                    delete [] siblingnode.children;
+                    delete [] node.children;
+                    unmap(&node,p);
+                    unmap(&siblingnode,sibling);
+                }
+            }
+            else {
+                delete [] node.children;
+            }
+            return true;
+        }
+        void RemoveFromHead(node_t &node){
+            for(int i = 1;i<=node.n;i++){
+                node.children[i-1].key = node.children[i].key;
+                node.children[i-1].value = node.children[i].value;
+            }
+            node.n--;
+        }
+        void InsertFromTail(node_t &node,const key_t &key,const value_t &value){
+            node.children[node.n].key = key;
+            node.children[node.n+1].value = value;
+            node.n++;
+        }
+        void ReplaceKey(const value_t &p,const key_t &oldkey,const key_t &newkey){
+            node_t node;
+            node.children = new record_t [meta.order+1];
+            map(&node,p);
+            for(int i = 0;i<node.n;i++)
+                if(node.children[i].key == oldkey){
+                    node.children[i].key = newkey;
+                    break;
+                }
+            unmap(&node, p);
+            delete [] node.children;
+        }
+        void InsertFromHead(node_t &node,const key_t &key,const value_t &value){
+            for(int i = node.n+1;i>0;i++){
+                node.children[i].key = node.children[i-1].key;
+                node.children[i].value = node.children[i-1].value;
+            }
+            node.children[0].key = key;
+            node.children[0].value = value;
+            node.n++;
+        }
+        void AppendLeafNode(node_t &node,const key_t &key,const node_t appnode){
+            int i = node.n;
+            int j = 0;
+            for(j = 0;j<appnode.n;i++,j++){
+                node.children[i].key = appnode.children[j].key;
+                node.children[i].value = appnode.children[j].value;
+            }
+            node.n += appnode.n;
+        }
+        void AppendInternalNode(const value_t &p,node_t &node,const key_t &key,const node_t appnode){
+            node_t childnode;
+            childnode.children = new record_t [meta.order+1];
+            int i = node.n+1,j = 0;
+            while(j<=appnode.n){
+                node.children[i].value = appnode.children[j].value;
+                map(&childnode,node.children[i].value);
+                childnode.parent = p;
+                unmap(&childnode,node.children[i].value);
+                i++;
+                j++;
+            }
+            delete [] childnode.children;
+            i = node.n;
+            j = 0;
+            node.children[i].key = key;
+            i++;
+            while(j<appnode.n){
+                node.children[i].key = appnode.children[j].key;
+                i++;
+                j++;
+            }
+            node.n += appnode.n + 1;
+        }
+        void SwapNode(node_t &anode,const value_t &pa,node_t &bnode,const value_t &pb){
+            record_t *tmp = new record_t[meta.order+2];
+            node_t childnode;
+            childnode.children = new record_t [meta.order+1];
+            for(int i = 0;i<=anode.n;i++){
+                tmp[i].key = anode.children[i].key;
+                tmp[i].value = anode.children[i].value;
+            }
+            for(int i = 0;i<=bnode.n;i++){
+                anode.children[i].key = bnode.children[i].key;
+                anode.children[i].value = bnode.children[i].value;
+                if(!anode.isleaf){
+                    map(&childnode,anode.children[i].value);
+                    childnode.parent = pa;
+                    unmap(&childnode, anode.children[i].value);
+                }
+            }
+            for(int i = 0;i<=anode.n;i++){
+                bnode.children[i].key = tmp[i].key;
+                bnode.children[i].value = tmp[i].value;
+                if(!bnode.isleaf){
+                    map(&childnode,bnode.children[i].value);
+                    childnode.parent = pb;
+                    unmap(&childnode, bnode.children[i].value);
+                }
+            }
+            size_t t = anode.n;
+            anode.n = bnode.n;
+            bnode.n = t;
+            delete [] childnode.children;
+            delete [] tmp;
+        }
     public:
-        bool remove(const key_t &key);
+        bool remove(const key_t &key){
+            off_t p = SearchNode(meta.rootOffset, key);
+            node_t node;
+            node.children = new record_t [meta.order+1];
+            map(&node,p);
+            off_t target;
+            int i;
+            for(i = 0;i<node.n;i++)
+                if(node.children[i].key == key)
+                    break;
+            if(i == node.n){
+                delete [] node.children;
+                return false;
+            }
+            else {
+                target = node.children[i].value;
+                return deleteEntry(p,key,target);
+            }
+        }
         void insert(const key_t &key,value_t &value){
             if(meta.rootOffset == -1){
                 node_t root;
@@ -580,6 +851,28 @@ namespace bpt {
             }
             delete [] node.children;
             return result.size();
+        }
+        void levelorder(){
+            off_t next = meta.rootOffset;
+            std::queue<off_t> q;
+            q.push(next);
+            node_t node;
+            node.children = new record_t [meta.order+1];
+            std::cout << "Start Levelorder" << std::endl;
+            while(q.size()){
+                off_t next = q.front();
+                q.pop();
+                map(&node,next);
+                if(!node.isleaf){
+                    for(int i = 0;i<=node.n;i++)
+                        q.push(node.children[i].value);
+                }
+                for(int i = 0;i<node.n;i++)
+                    std::cout << node.children[i].key.k << ' ';
+                std::cout << std::endl;
+            }
+            delete [] node.children;
+            std::cout << "End levelorder" << std::endl;
         }
         /*
         void printTree(){
