@@ -9,8 +9,13 @@
 %code requires {
 	#include <iostream>
 	#include <string>
+	#include <vector>
+	#include <sstream>
+	#include "sqlstruct.h"
 	class sqlparser_driver;
 	void emit(char *s,...);
+	std::string itostr(int value);
+	std::string ftostr(float value);
 }
 %param {sqlparser_driver &driver}
 %locations
@@ -41,22 +46,22 @@
 %token INDEX
 %token FROM
 %token UPDATE
-%token DEFAULT
-%token AUTO_INCREMENT
+%token<int> DEFAULT
+%token<int> AUTO_INCREMENT
 %token EXISTS
 %token TABLE
 %token CHAR
 %token SELECT
 %token SET
-%token NULLX
+%token<int> NULLX
 %token INT
 %token FLOAT
 %token VALUES
 %token DISTINCT
 %token  WHERE
-%token UNIQUE
+%token<int> UNIQUE
 %token INSERT
-%token PRIMARY
+%token<int> PRIMARY
 %token INTO
 %token END 0
 
@@ -87,16 +92,24 @@
 %type <int> select_opts select_expr_list
 %type <int> val_list opt_val_list 
 %type <int> table_references
-%type <int> column_list 
+%type <std::vector<std::string>> column_list 
+%type <sqlstruct::record_t> create_definition
 /*%type <intval> delete_opts*/
 
-%type <int> insert_vals insert_val_list
 %type <int>  update_asgn_list
-%type <int> column_atts data_type create_col_list
+%type <int> data_type 
 %type <int> opt_length
-%type <int> insert_stmt
 %type <int> expr
 %type <int> update_stmt
+%type <sqlstruct::create_col_list> create_col_list
+%type <sqlstruct::createtable> create_table_stmt
+%type <std::vector<sqlstruct::col_attr>> column_atts
+%type <std::string> drop_table_stmt
+%type <sqlstruct::dropindex> drop_index_stmt
+%type <std::string> execfile_stmt
+%type <float> numexp
+%type <std::vector<sqlstruct::insertitem>> insert_vals 
+%type <sqlstruct::insertvalues> insert_stmt;
 %start stmt_list
 %%
 
@@ -106,15 +119,8 @@ stmt_list: stmt ";"
 	| stmt_list error ";"
 
 expr: NAME {emit("NAME %s",($1).c_str()); }
-	| NAME "." NAME {emit("FILEDNAME %s.%s",($1).c_str(),($3).c_str()); }
   	| STRING {emit("STRING %s",($1).c_str()); }
-	| INTNUM {emit("NUMBER %d",$1);}
-	| FLOATNUM {emit("FLOAT %g",$1);}
-	| expr "+" expr {emit("ADD");}
-	| expr "-" expr {emit("SUB");}
-	| expr "*" expr {emit("MUL");}
-	| expr "/" expr {emit("DIV");}
-	| "-" expr %prec UMINUS {emit("NEG");}
+	| numexp {} 
 	| expr ANDOP expr {emit("AND");}
 	| expr OR expr {emit("OR");}
 	| expr XOR expr {emit("XOR");}
@@ -126,14 +132,34 @@ expr: NAME {emit("NAME %s",($1).c_str()); }
 	| expr IS NOT NULLX {emit("ISNULL"); emit("NOT");}
 	| expr BETWEEN expr AND expr %prec BETWEEN {emit("BETWEEN");}
 	;
+
 val_list: expr {$$ = 1;}
 	| expr "," val_list {$$ = $3 + 1;}
 	;
+/*stmt: numexp {std::cout << $1 << std::endl;} */
 
+numexp: INTNUM {$$ = $1;}
+        | FLOATNUM {$$ = $1;}
+	| numexp "+" numexp {$$ = $1 + $3;}
+	| numexp "-" numexp {$$ = $1 + $3;}
+	| numexp "*" numexp {$$ = $1 * $3;}
+	| numexp "/" numexp {$$ = $1 / $3;}
+	| "-" numexp %prec UMINUS {$$ = -$2;}
+	;
+/*
+floatexp: FLOATNUM {$$ = $1;}
+	| floatexp "+" floatexp {$$ = $1 + $3;}
+	| floatexp "+" intexp {$$ = $1 + $3;}
+	| intexp "+" floatexp {$$ = $1 + $3;}
+	| floatexp "-" floatexp {$$ = $1 - $3;}
+	| floatexp "-" intexp {$$ = $1 - $3;}
+	| intexp "-" floatexp {$$ = $1 - $3;}
+	| floatexp "*" floatexp {$$ = $1 * $3;}
+*/
 opt_val_list: {$$ = 0;}
 	    | val_list
 	    ;
-
+/*
 expr : expr IN "(" val_list ")" {emit("ISIN %d",$4);}
 	| expr NOT IN "(" val_list ")" {emit("ISIN %d",$5); emit("NOT");}
 	| expr IN "(" select_stmt ")" {emit("CMPANYSELECT 4");}
@@ -143,18 +169,16 @@ expr : expr IN "(" val_list ")" {emit("ISIN %d",$4);}
 expr: expr LIKE expr {emit("LIKE");}
     | expr NOT LIKE expr {emit("LIKE"); emit("NOT");}
 
-
+*/
 stmt: select_stmt {emit("STMT");}
     ;
 
-select_stmt: SELECT select_opts select_expr_list {emit("SELECTNODATA %d %d",$2,$3);}
-	| SELECT select_opts select_expr_list FROM table_references
-	 opt_where 
-	{emit("SELECT %d %d %d",$2,$3,$5);}
+select_stmt:  SELECT select_expr_list FROM table_references opt_where {emit("SELECT %d %d %d",$2,$4);}
 	;
 
-opt_where:
+opt_where: %empty
 	 | WHERE expr {emit("WHERE");}
+	 ;
 /*
 opt_groupby:
 	 | GROUP BY groupby_list opt_with_rollup {emit("GROUPBYLIST %d %d",$3,$4);}
@@ -183,28 +207,23 @@ opt_into_list:
 	     | INTO column_list {emit("INTO %d",$2);}
              ;
 */
-column_list: NAME {emit("COLUMN %s",($1).c_str()); $$ = 1;}
-	| STRING {emit("COLUMN %s",($1).c_str()); $$ = 1;}   
-	| column_list "," NAME {emit("COLUMN %s",($3).c_str()); $$ = $1 + 1;}
-	| column_list "," STRING {emit("COLUMN %s",($3).c_str()); $$ = $1 + 1;}
+column_list: NAME {($$).clear(); ($$).push_back($1);}
+	| STRING {($$).clear(); ($$).push_back($1);}   
+	| column_list "," NAME {$$ = $1;($1).push_back($3);}
+	| column_list "," STRING {$$ = $1;($1).push_back($3);}
 
-select_opts: {$$ = 0;}
-	| select_opts ALL {if($1 & 01) error(@1,"duplicate ALL option"); $$ = $1 | 01;}
-	| select_opts DISTINCT  {if($1 & 02) error(@1,"duplicate DISTINCT option"); $$ = $1 | 02;}
-	;
 
-select_expr_list: select_expr {$$ = 1;}
-		| select_expr_list ',' select_expr {$$ = $1 + 1;}
+select_expr_list: NAME {$$ = 1;}
+		| select_expr_list "," NAME {$$ = $1 + 1;}
 		| "*" {emit("SELECTALL"); $$ = 1;}
 		;
 
-select_expr: expr opt_as_alias;
-
+/*
 opt_as_alias: AS NAME {emit("ALIAS %s",($2).c_str());} 
 	| NAME {emit("ALIAS %s",($1).c_str());} 
 	|
 	;
-
+*/
 table_references: table_reference {$$ = 1;}
 	| table_references "," table_reference {$$ = $1 + 1;}
 	;
@@ -225,30 +244,35 @@ opt_as:
 stmt: delete_stmt {emit("STMT");}
     ;
 
-delete_stmt: DELETE  FROM NAME opt_where {emit("DELETEONE %s",($3).c_str()); }
+delete_stmt: DELETE  FROM NAME opt_where {emit("DELETE %s",($3).c_str()); }
 	   ;
 
-stmt: insert_stmt {emit("STMT");}
+stmt: insert_stmt {driver.InsertValues($1);}
     ;
 
 insert_stmt: INSERT opt_into NAME VALUES 
-	   insert_val_list {emit("INSERTVALS  %d %s",$5,($3).c_str()); }
+	   "(" insert_vals ")" {($$).tablename = $3;($$).item = $6;}
 	   ;
 
 opt_into: INTO 
 	|
 	;
-
+/*
 insert_val_list: "(" insert_vals ")" {emit("VALUES %d",$2); $$ = 1;}
 	       |insert_val_list "," "(" insert_vals  ")" {emit("VALUES %d",$4); $$ = $1 + 1;}
-insert_vals: expr {$$ = 1;}
-	   |DEFAULT {emit("DEFAULT"); $$ = 1;}
-	   |insert_vals "," expr {$$ = $1 + 1;}
-	   |insert_vals "," DEFAULT {emit("DEFAULT"); $$ = $1 + 1;}
+*/
+insert_vals: STRING {($$).clear(); sqlstruct::insertitem item;item.data_type = sqlstruct::STRING;item.value = $1;($$).push_back(item); }
+	| INTNUM {($$).clear();sqlstruct::insertitem item;item.data_type = sqlstruct::INTNUM;item.value = itostr($1);($$).push_back(item);}
+	| FLOATNUM {($$).clear();sqlstruct::insertitem item;item.data_type = sqlstruct::FLOATNUM;item.value = ftostr($1);($$).push_back(item);}   
+	|DEFAULT {sqlstruct::insertitem item;item.data_type = sqlstruct::DEFAULT;($$).push_back(item);}
+	|insert_vals "," STRING {sqlstruct::insertitem item;item.data_type = sqlstruct::STRING;item.value = $3;$$ = $1;($$).push_back(item);}
+	|insert_vals "," INTNUM {sqlstruct::insertitem item;item.data_type = sqlstruct::INTNUM;item.value = itostr($3);$$ = $1;($$).push_back(item);}
+	|insert_vals "," FLOATNUM {sqlstruct::insertitem item;item.data_type = sqlstruct::FLOATNUM;item.value = ftostr($3);$$ = $1;($$).push_back(item);}
+	|insert_vals "," DEFAULT {sqlstruct::insertitem item;item.data_type = sqlstruct::DEFAULT;}
 
+/*
 stmt: update_stmt {emit("STMT");}
     ;
-
 update_stmt: UPDATE table_references SET update_asgn_list opt_where {emit("UPDATE %d %d",$2,$4);}
 	   ;
 update_asgn_list:
@@ -258,31 +282,31 @@ update_asgn_list:
 			YYERROR;} emit("ASSIGN %s.%s",($1).c_str(),($3).c_str());  $$ = 1;}
 		;
 
+*/
 stmt: create_table_stmt {
-    		emit("STMT");
+    		//emit("STMT");
+		driver.Createtable($1);
 	}
 	;
-create_table_stmt: CREATE TABLE NAME "(" create_col_list ")" {emit("CREATE %d %s",$5,($3).c_str()); }
+create_table_stmt: CREATE TABLE NAME "(" create_col_list ")" {($$).name = $3;($$).col = $5; }
 		 ;
 
-create_col_list: create_definition {$$ = 1;}
-	       | create_col_list "," create_definition {$$ = $1+1;}
+create_col_list: create_definition {($$).record.clear();($$).record.push_back($1);}
+	       | create_col_list "," create_definition {$$ = $1;($$).record.push_back($3);}
+	       | create_col_list "," PRIMARY KEY "(" column_list ")" {$$ = $1;($$).primarykey = $6;}
+	       | create_col_list "," INDEX "(" column_list ")" {$$ = $1;($$).indexkey = $5;}
 
-create_definition: PRIMARY KEY "(" column_list ")" {emit("PRIKEY %d",$4);}
-		 | INDEX "(" column_list ")" {emit("INDEX %d",$3);}
+create_definition:  NAME data_type column_atts {($$).name = $1;($$).data_type = $2;($$).attr = $3; }
 
-create_definition: {emit("STARTCOL");} NAME data_type column_atts {emit("COLUMNDEF %d %s",$3,($2).c_str()); }
-
-column_atts: {$$ = 0;}
-	| column_atts NOT NULLX {emit("ATTR NOTNULL"); $$ = $1 + 1;}
-	| column_atts NULLX 
-	| column_atts DEFAULT STRING {emit("ATTR DEFAULT STRING %s",($3).c_str());  $$ = $1+1;}
-	| column_atts DEFAULT INTNUM {emit("ATTR DEFAULT NUMBER %d",$3); $$ = $1 + 1;}
-	| column_atts DEFAULT FLOATNUM {emit("ATTR DEFAULT FLOAT %g",$3); $$ = $1+1;}
-	| column_atts AUTO_INCREMENT {emit("ATTR AUTOINC"); $$ = $1 +1;}
-	| column_atts UNIQUE "(" column_list ")" {emit("ATTR UNIQUEKEY %d",$4); $$ = $1 + 1;}
-	| column_atts UNIQUE KEY {emit("ATTR UNIQUEKEY"); $$ = $1+1;}
-	| column_atts PRIMARY KEY {emit("ATTR PRIKEY"); $$ = $1 + 1;}
+column_atts: {($$).clear();}
+	| column_atts NOT NULLX {sqlstruct::col_attr attr; attr.type = $3 + 1000;$$ = $1;($$).push_back(attr);}
+	| column_atts NULLX 	{sqlstruct::col_attr attr; attr.type = $2;$$ = $1;($$).push_back(attr);}
+	| column_atts DEFAULT STRING {sqlstruct::col_attr attr;attr.type = $2; attr.value = $3; $$ = $1;($$).push_back(attr);}
+	| column_atts DEFAULT INTNUM {sqlstruct::col_attr attr;attr.type = $2;attr.value = itostr($3);$$ = $1;($$).push_back(attr);}
+	| column_atts DEFAULT FLOATNUM {sqlstruct::col_attr attr;attr.type = $2; attr.value = ftostr($3);$$ = $1;($$).push_back(attr);}
+	| column_atts AUTO_INCREMENT {sqlstruct::col_attr attr; attr.type = $2;$$ = $1;($$).push_back(attr);}
+	| column_atts UNIQUE 	{sqlstruct::col_attr attr;attr.type = $2;$$ = $1;($$).push_back(attr);}
+	| column_atts PRIMARY KEY {sqlstruct::col_attr attr;attr.type = $2;$$ = $1; ($$).push_back(attr);}
 	;
 
 opt_length: {$$ = 0;}
@@ -294,21 +318,21 @@ data_type: INT {$$ = 40000;}
 stmt: create_index_stmt {emit("STMT");}
 create_index_stmt: CREATE INDEX NAME ON NAME "(" column_list ")" {emit("INDEX %s %s",($3).c_str(),($5).c_str()); }
 
-stmt: drop_table_stmt {emit("STMT");}
+stmt: drop_table_stmt {driver.DropTable($1);}
 
-drop_table_stmt: DROP TABLE NAME {emit("DROPTABLE %s",($3).c_str()); }
+drop_table_stmt: DROP TABLE NAME {$$ = $3; }
 
-stmt: drop_index_stmt {emit("STMT");}
+stmt: drop_index_stmt {driver.DropIndex($1);}
 
-drop_index_stmt: DROP INDEX NAME {emit("DROPINDEX %s",($3).c_str()); }
+drop_index_stmt: DROP INDEX NAME ON NAME "(" column_list ")" {($$).indexname = $3;($$).tablename = $5;($$).col = $7; }
 
 stmt: quit_stmt {emit("STMT");}
 
 quit_stmt:QUIT {exit(0);}
 
-stmt: execfile_stmt {emit("STMT");}
+stmt: execfile_stmt {driver.ExecFile($1);}
 
-execfile_stmt: EXECFILE NAME {emit("EXECFILE %s",($2).c_str()); }
+execfile_stmt: EXECFILE NAME {$$ = $2; }
 %%
 void emit(char *s,...){
 	extern int yylineno;
@@ -346,4 +370,15 @@ int main(int argc,char **argv){
 }*/
 void yy::sqlparser::error(const location_type& l,const std::string &m){
 	driver.error(l,m);
+}
+std::string itostr(int value){
+	std::stringstream sstr;
+	sstr << value;
+	return sstr.str();   
+}
+
+std::string ftostr(float value){
+	std::stringstream sstr;
+	sstr << value;
+	return sstr.str();   
 }

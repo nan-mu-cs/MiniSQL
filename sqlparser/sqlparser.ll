@@ -7,7 +7,7 @@
 	#include <string>
 	#include "sqlparser_driver.hh"
 	#include "sqlparser.hh"
-
+	#include "sqlstruct.h"
 	#undef yywrap
 	#define yywrap() 1
 	#define yyterminate() return yy::sqlparser::make_END(loc);
@@ -29,11 +29,11 @@ ALL 	{return yy::sqlparser::make_ALL(loc);}
 <BTWMODE>AND	{BEGIN(0); return yy::sqlparser::make_AND(loc);}
 AND	{return yy::sqlparser::make_AND(loc);}
 AS	{return yy::sqlparser::make_AS(loc);}
-AUTO_INCREMENT	{return yy::sqlparser::make_AUTO_INCREMENT(loc);}
+AUTO_INCREMENT	{return yy::sqlparser::make_AUTO_INCREMENT(sqlstruct::AUTO_INCREMENT,loc);}
 BETWEEN	{BEGIN(BTWMODE); return yy::sqlparser::make_BETWEEN(loc);}
 CHAR	{return yy::sqlparser::make_CHAR(loc);}
 CREATE	{return yy::sqlparser::make_CREATE(loc);}
-DEFAULT	{return yy::sqlparser::make_DEFAULT(loc);}
+DEFAULT	{return yy::sqlparser::make_DEFAULT(sqlstruct::DEFAULT,loc);}
 DELETE	{return yy::sqlparser::make_DELETE(loc);}
 DISTINCT	{return yy::sqlparser::make_DISTINCT(loc);}
 DROP 	{return yy::sqlparser::make_DROP(loc);}
@@ -50,14 +50,15 @@ IS	{return yy::sqlparser::make_IS(loc);}
 KEY 	{return yy::sqlparser::make_KEY(loc);}
 LIKE	{return yy::sqlparser::make_LIKE(loc);}
 NOT	{return yy::sqlparser::make_NOT(loc);}
-NULL	{return yy::sqlparser::make_NULLX(loc);}
+NULL	{return yy::sqlparser::make_NULLX(sqlstruct::NULLX,loc);}
 ON 	{return yy::sqlparser::make_ON(loc);}
 OR	{return yy::sqlparser::make_OR(loc);}
-PRIMARY	{return yy::sqlparser::make_PRIMARY(loc);}
+PRIMARY	{return yy::sqlparser::make_PRIMARY(sqlstruct::PRIMARY,loc);}
 QUIT 	{return yy::sqlparser::make_QUIT(loc);}
 SELECT	{return yy::sqlparser::make_SELECT(loc);}
 TABLE	{return yy::sqlparser::make_TABLE(loc);}
 UPDATE	{return yy::sqlparser::make_UPDATE(loc);}
+UNIQUE	{return yy::sqlparser::make_UNIQUE(sqlstruct::UNIQUE,loc);}
 VALUES 	{return yy::sqlparser::make_VALUES(loc);}
 WHERE	{return yy::sqlparser::make_WHERE(loc);}
 
@@ -83,7 +84,7 @@ WHERE	{return yy::sqlparser::make_WHERE(loc);}
 
 "&&"	{return yy::sqlparser::make_ANDOP(loc);}
 "||"	{return yy::sqlparser::make_OR(loc);}
-"=="	{return yy::sqlparser::make_COMPARISON(4,loc);}
+"=="|"="	{return yy::sqlparser::make_COMPARISON(4,loc);}
 "<=>"	{return yy::sqlparser::make_COMPARISON(12,loc);}
 ">="	{return yy::sqlparser::make_COMPARISON(6,loc);}
 ">"	{return yy::sqlparser::make_COMPARISON(2,loc);}
@@ -113,7 +114,8 @@ void sqlparser_driver::scan_end ()
   fclose (yyin);
 }
 int sqlparser_driver::parse(FILE *fp){
-	yy_flex_debug = trace_scanning;
+	//std::cout << yy::sqlparser::token::END <<std::endl;
+	//yy_flex_debug = trace_scanning;
 	yyin = fp;
 	yy::sqlparser parser(*this);
 	parser.set_debug_level(false);
