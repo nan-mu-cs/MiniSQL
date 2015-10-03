@@ -297,7 +297,7 @@ namespace yy {
     union union_type
     {
       // FLOATNUM
-      // numexp
+      // floatexp
       char dummy1[sizeof(float)];
 
       // INTNUM
@@ -307,42 +307,54 @@ namespace yy {
       // UNIQUE
       // PRIMARY
       // COMPARISON
-      // expr
-      // select_expr_list
-      // table_references
+      // intexp
       // opt_length
       // data_type
       char dummy2[sizeof(int)];
 
+      // expr
+      // opt_where
+      char dummy3[sizeof(sqlstruct::astree*)];
+
       // create_col_list
-      char dummy3[sizeof(sqlstruct::create_col_list)];
+      char dummy4[sizeof(sqlstruct::create_col_list)];
+
+      // create_index_stmt
+      char dummy5[sizeof(sqlstruct::createindex)];
 
       // create_table_stmt
-      char dummy4[sizeof(sqlstruct::createtable)];
+      char dummy6[sizeof(sqlstruct::createtable)];
+
+      // delete_stmt
+      char dummy7[sizeof(sqlstruct::deletetable)];
 
       // drop_index_stmt
-      char dummy5[sizeof(sqlstruct::dropindex)];
+      char dummy8[sizeof(sqlstruct::dropindex)];
 
       // insert_stmt
-      char dummy6[sizeof(sqlstruct::insertvalues)];
+      char dummy9[sizeof(sqlstruct::insertvalues)];
 
       // create_definition
-      char dummy7[sizeof(sqlstruct::record_t)];
+      char dummy10[sizeof(sqlstruct::record_t)];
+
+      // select_stmt
+      char dummy11[sizeof(sqlstruct::selecttable)];
 
       // NAME
       // STRING
       // drop_table_stmt
       // execfile_stmt
-      char dummy8[sizeof(std::string)];
+      char dummy12[sizeof(std::string)];
 
       // column_atts
-      char dummy9[sizeof(std::vector<sqlstruct::col_attr>)];
+      char dummy13[sizeof(std::vector<sqlstruct::col_attr>)];
 
       // insert_vals
-      char dummy10[sizeof(std::vector<sqlstruct::insertitem>)];
+      char dummy14[sizeof(std::vector<sqlstruct::insertitem>)];
 
       // column_list
-      char dummy11[sizeof(std::vector<std::string>)];
+      // select_expr_list
+      char dummy15[sizeof(std::vector<std::string>)];
 };
 
     /// Symbol semantic values.
@@ -465,15 +477,23 @@ namespace yy {
 
   basic_symbol (typename Base::kind_type t, const int v, const location_type& l);
 
+  basic_symbol (typename Base::kind_type t, const sqlstruct::astree* v, const location_type& l);
+
   basic_symbol (typename Base::kind_type t, const sqlstruct::create_col_list v, const location_type& l);
 
+  basic_symbol (typename Base::kind_type t, const sqlstruct::createindex v, const location_type& l);
+
   basic_symbol (typename Base::kind_type t, const sqlstruct::createtable v, const location_type& l);
+
+  basic_symbol (typename Base::kind_type t, const sqlstruct::deletetable v, const location_type& l);
 
   basic_symbol (typename Base::kind_type t, const sqlstruct::dropindex v, const location_type& l);
 
   basic_symbol (typename Base::kind_type t, const sqlstruct::insertvalues v, const location_type& l);
 
   basic_symbol (typename Base::kind_type t, const sqlstruct::record_t v, const location_type& l);
+
+  basic_symbol (typename Base::kind_type t, const sqlstruct::selecttable v, const location_type& l);
 
   basic_symbol (typename Base::kind_type t, const std::string v, const location_type& l);
 
@@ -864,7 +884,7 @@ namespace yy {
   static const short int yypgoto_[];
 
   // YYDEFGOTO[NTERM-NUM].
-  static const signed char yydefgoto_[];
+  static const short int yydefgoto_[];
 
   // YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
   // positive, shift that token.  If negative, reduce the rule whose
@@ -991,8 +1011,8 @@ namespace yy {
     enum
     {
       yyeof_ = 0,
-      yylast_ = 182,     ///< Last index in yytable_.
-      yynnts_ = 27,  ///< Number of nonterminal symbols.
+      yylast_ = 256,     ///< Last index in yytable_.
+      yynnts_ = 25,  ///< Number of nonterminal symbols.
       yyfinal_ = 32, ///< Termination state number.
       yyterror_ = 1,
       yyerrcode_ = 256,
@@ -1080,7 +1100,7 @@ namespace yy {
       switch (other.type_get ())
     {
       case 6: // FLOATNUM
-      case 66: // numexp
+      case 67: // floatexp
         value.copy< float > (other.value);
         break;
 
@@ -1091,50 +1111,66 @@ namespace yy {
       case 35: // UNIQUE
       case 37: // PRIMARY
       case 60: // COMPARISON
-      case 65: // expr
-      case 71: // select_expr_list
-      case 72: // table_references
-      case 83: // opt_length
-      case 84: // data_type
+      case 66: // intexp
+      case 81: // opt_length
+      case 82: // data_type
         value.copy< int > (other.value);
         break;
 
-      case 80: // create_col_list
+      case 65: // expr
+      case 70: // opt_where
+        value.copy< sqlstruct::astree* > (other.value);
+        break;
+
+      case 78: // create_col_list
         value.copy< sqlstruct::create_col_list > (other.value);
         break;
 
-      case 79: // create_table_stmt
+      case 83: // create_index_stmt
+        value.copy< sqlstruct::createindex > (other.value);
+        break;
+
+      case 77: // create_table_stmt
         value.copy< sqlstruct::createtable > (other.value);
         break;
 
-      case 87: // drop_index_stmt
+      case 73: // delete_stmt
+        value.copy< sqlstruct::deletetable > (other.value);
+        break;
+
+      case 85: // drop_index_stmt
         value.copy< sqlstruct::dropindex > (other.value);
         break;
 
-      case 76: // insert_stmt
+      case 74: // insert_stmt
         value.copy< sqlstruct::insertvalues > (other.value);
         break;
 
-      case 81: // create_definition
+      case 79: // create_definition
         value.copy< sqlstruct::record_t > (other.value);
+        break;
+
+      case 69: // select_stmt
+        value.copy< sqlstruct::selecttable > (other.value);
         break;
 
       case 3: // NAME
       case 4: // STRING
-      case 86: // drop_table_stmt
-      case 89: // execfile_stmt
+      case 84: // drop_table_stmt
+      case 87: // execfile_stmt
         value.copy< std::string > (other.value);
         break;
 
-      case 82: // column_atts
+      case 80: // column_atts
         value.copy< std::vector<sqlstruct::col_attr> > (other.value);
         break;
 
-      case 78: // insert_vals
+      case 76: // insert_vals
         value.copy< std::vector<sqlstruct::insertitem> > (other.value);
         break;
 
-      case 70: // column_list
+      case 71: // column_list
+      case 72: // select_expr_list
         value.copy< std::vector<std::string> > (other.value);
         break;
 
@@ -1156,7 +1192,7 @@ namespace yy {
       switch (this->type_get ())
     {
       case 6: // FLOATNUM
-      case 66: // numexp
+      case 67: // floatexp
         value.copy< float > (v);
         break;
 
@@ -1167,50 +1203,66 @@ namespace yy {
       case 35: // UNIQUE
       case 37: // PRIMARY
       case 60: // COMPARISON
-      case 65: // expr
-      case 71: // select_expr_list
-      case 72: // table_references
-      case 83: // opt_length
-      case 84: // data_type
+      case 66: // intexp
+      case 81: // opt_length
+      case 82: // data_type
         value.copy< int > (v);
         break;
 
-      case 80: // create_col_list
+      case 65: // expr
+      case 70: // opt_where
+        value.copy< sqlstruct::astree* > (v);
+        break;
+
+      case 78: // create_col_list
         value.copy< sqlstruct::create_col_list > (v);
         break;
 
-      case 79: // create_table_stmt
+      case 83: // create_index_stmt
+        value.copy< sqlstruct::createindex > (v);
+        break;
+
+      case 77: // create_table_stmt
         value.copy< sqlstruct::createtable > (v);
         break;
 
-      case 87: // drop_index_stmt
+      case 73: // delete_stmt
+        value.copy< sqlstruct::deletetable > (v);
+        break;
+
+      case 85: // drop_index_stmt
         value.copy< sqlstruct::dropindex > (v);
         break;
 
-      case 76: // insert_stmt
+      case 74: // insert_stmt
         value.copy< sqlstruct::insertvalues > (v);
         break;
 
-      case 81: // create_definition
+      case 79: // create_definition
         value.copy< sqlstruct::record_t > (v);
+        break;
+
+      case 69: // select_stmt
+        value.copy< sqlstruct::selecttable > (v);
         break;
 
       case 3: // NAME
       case 4: // STRING
-      case 86: // drop_table_stmt
-      case 89: // execfile_stmt
+      case 84: // drop_table_stmt
+      case 87: // execfile_stmt
         value.copy< std::string > (v);
         break;
 
-      case 82: // column_atts
+      case 80: // column_atts
         value.copy< std::vector<sqlstruct::col_attr> > (v);
         break;
 
-      case 78: // insert_vals
+      case 76: // insert_vals
         value.copy< std::vector<sqlstruct::insertitem> > (v);
         break;
 
-      case 70: // column_list
+      case 71: // column_list
+      case 72: // select_expr_list
         value.copy< std::vector<std::string> > (v);
         break;
 
@@ -1244,6 +1296,13 @@ namespace yy {
   {}
 
   template <typename Base>
+  sqlparser::basic_symbol<Base>::basic_symbol (typename Base::kind_type t, const sqlstruct::astree* v, const location_type& l)
+    : Base (t)
+    , value (v)
+    , location (l)
+  {}
+
+  template <typename Base>
   sqlparser::basic_symbol<Base>::basic_symbol (typename Base::kind_type t, const sqlstruct::create_col_list v, const location_type& l)
     : Base (t)
     , value (v)
@@ -1251,7 +1310,21 @@ namespace yy {
   {}
 
   template <typename Base>
+  sqlparser::basic_symbol<Base>::basic_symbol (typename Base::kind_type t, const sqlstruct::createindex v, const location_type& l)
+    : Base (t)
+    , value (v)
+    , location (l)
+  {}
+
+  template <typename Base>
   sqlparser::basic_symbol<Base>::basic_symbol (typename Base::kind_type t, const sqlstruct::createtable v, const location_type& l)
+    : Base (t)
+    , value (v)
+    , location (l)
+  {}
+
+  template <typename Base>
+  sqlparser::basic_symbol<Base>::basic_symbol (typename Base::kind_type t, const sqlstruct::deletetable v, const location_type& l)
     : Base (t)
     , value (v)
     , location (l)
@@ -1273,6 +1346,13 @@ namespace yy {
 
   template <typename Base>
   sqlparser::basic_symbol<Base>::basic_symbol (typename Base::kind_type t, const sqlstruct::record_t v, const location_type& l)
+    : Base (t)
+    , value (v)
+    , location (l)
+  {}
+
+  template <typename Base>
+  sqlparser::basic_symbol<Base>::basic_symbol (typename Base::kind_type t, const sqlstruct::selecttable v, const location_type& l)
     : Base (t)
     , value (v)
     , location (l)
@@ -1333,7 +1413,7 @@ namespace yy {
     switch (yytype)
     {
       case 6: // FLOATNUM
-      case 66: // numexp
+      case 67: // floatexp
         value.template destroy< float > ();
         break;
 
@@ -1344,50 +1424,66 @@ namespace yy {
       case 35: // UNIQUE
       case 37: // PRIMARY
       case 60: // COMPARISON
-      case 65: // expr
-      case 71: // select_expr_list
-      case 72: // table_references
-      case 83: // opt_length
-      case 84: // data_type
+      case 66: // intexp
+      case 81: // opt_length
+      case 82: // data_type
         value.template destroy< int > ();
         break;
 
-      case 80: // create_col_list
+      case 65: // expr
+      case 70: // opt_where
+        value.template destroy< sqlstruct::astree* > ();
+        break;
+
+      case 78: // create_col_list
         value.template destroy< sqlstruct::create_col_list > ();
         break;
 
-      case 79: // create_table_stmt
+      case 83: // create_index_stmt
+        value.template destroy< sqlstruct::createindex > ();
+        break;
+
+      case 77: // create_table_stmt
         value.template destroy< sqlstruct::createtable > ();
         break;
 
-      case 87: // drop_index_stmt
+      case 73: // delete_stmt
+        value.template destroy< sqlstruct::deletetable > ();
+        break;
+
+      case 85: // drop_index_stmt
         value.template destroy< sqlstruct::dropindex > ();
         break;
 
-      case 76: // insert_stmt
+      case 74: // insert_stmt
         value.template destroy< sqlstruct::insertvalues > ();
         break;
 
-      case 81: // create_definition
+      case 79: // create_definition
         value.template destroy< sqlstruct::record_t > ();
+        break;
+
+      case 69: // select_stmt
+        value.template destroy< sqlstruct::selecttable > ();
         break;
 
       case 3: // NAME
       case 4: // STRING
-      case 86: // drop_table_stmt
-      case 89: // execfile_stmt
+      case 84: // drop_table_stmt
+      case 87: // execfile_stmt
         value.template destroy< std::string > ();
         break;
 
-      case 82: // column_atts
+      case 80: // column_atts
         value.template destroy< std::vector<sqlstruct::col_attr> > ();
         break;
 
-      case 78: // insert_vals
+      case 76: // insert_vals
         value.template destroy< std::vector<sqlstruct::insertitem> > ();
         break;
 
-      case 70: // column_list
+      case 71: // column_list
+      case 72: // select_expr_list
         value.template destroy< std::vector<std::string> > ();
         break;
 
@@ -1415,7 +1511,7 @@ namespace yy {
       switch (this->type_get ())
     {
       case 6: // FLOATNUM
-      case 66: // numexp
+      case 67: // floatexp
         value.move< float > (s.value);
         break;
 
@@ -1426,50 +1522,66 @@ namespace yy {
       case 35: // UNIQUE
       case 37: // PRIMARY
       case 60: // COMPARISON
-      case 65: // expr
-      case 71: // select_expr_list
-      case 72: // table_references
-      case 83: // opt_length
-      case 84: // data_type
+      case 66: // intexp
+      case 81: // opt_length
+      case 82: // data_type
         value.move< int > (s.value);
         break;
 
-      case 80: // create_col_list
+      case 65: // expr
+      case 70: // opt_where
+        value.move< sqlstruct::astree* > (s.value);
+        break;
+
+      case 78: // create_col_list
         value.move< sqlstruct::create_col_list > (s.value);
         break;
 
-      case 79: // create_table_stmt
+      case 83: // create_index_stmt
+        value.move< sqlstruct::createindex > (s.value);
+        break;
+
+      case 77: // create_table_stmt
         value.move< sqlstruct::createtable > (s.value);
         break;
 
-      case 87: // drop_index_stmt
+      case 73: // delete_stmt
+        value.move< sqlstruct::deletetable > (s.value);
+        break;
+
+      case 85: // drop_index_stmt
         value.move< sqlstruct::dropindex > (s.value);
         break;
 
-      case 76: // insert_stmt
+      case 74: // insert_stmt
         value.move< sqlstruct::insertvalues > (s.value);
         break;
 
-      case 81: // create_definition
+      case 79: // create_definition
         value.move< sqlstruct::record_t > (s.value);
+        break;
+
+      case 69: // select_stmt
+        value.move< sqlstruct::selecttable > (s.value);
         break;
 
       case 3: // NAME
       case 4: // STRING
-      case 86: // drop_table_stmt
-      case 89: // execfile_stmt
+      case 84: // drop_table_stmt
+      case 87: // execfile_stmt
         value.move< std::string > (s.value);
         break;
 
-      case 82: // column_atts
+      case 80: // column_atts
         value.move< std::vector<sqlstruct::col_attr> > (s.value);
         break;
 
-      case 78: // insert_vals
+      case 76: // insert_vals
         value.move< std::vector<sqlstruct::insertitem> > (s.value);
         break;
 
-      case 70: // column_list
+      case 71: // column_list
+      case 72: // select_expr_list
         value.move< std::vector<std::string> > (s.value);
         break;
 
@@ -1896,7 +2008,7 @@ namespace yy {
 
 
 } // yy
-#line 1900 "sqlparser.hh" // lalr1.cc:392
+#line 2012 "sqlparser.hh" // lalr1.cc:392
 
 
 

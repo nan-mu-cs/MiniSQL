@@ -52,6 +52,13 @@ class sqlparser_driver{
 				std::cout << node.col[i]<< ' ';
 			std::cout << std::endl;
 		}
+		void CreateIndex(sqlstruct::createindex &node){
+			std::cout << "Table Name: " << node.tablename << std::endl;
+			std::cout << "Index Name: " << node.indexname << std::endl;
+			for(int i = 0;i<node.col.size();i++)
+				std::cout << node.col[i]<< ' ';
+			std::cout << std::endl;
+		}
 		void ExecFile(std::string filename){
 			std::cout << filename << std::endl;
 		}
@@ -63,6 +70,70 @@ class sqlparser_driver{
 					std::cout << "VALUES " << node.item[i].value;
 				std::cout << std::endl;
 			}
+		}
+		sqlstruct::astree * newLeafNode(std::string value){
+			sqlstruct::astree *node = new sqlstruct::astree;
+			node->value = value;
+			node->left = node->right = NULL;
+			node->isleaf = true;
+			return node;
+		}
+		sqlstruct::astree * newInternalNode(sqlstruct::astree*left,int operate,sqlstruct::astree *right){
+			sqlstruct::astree *node = new sqlstruct::astree;
+			node->left = left;
+			node->right = right;
+			node->operate = operate;
+			node->isleaf = false;
+			return node;
+		}
+		void freeASTree(sqlstruct::astree *root){
+			if(root->isleaf)
+			{
+				delete root;
+				return ;
+			}
+			if(root->left)
+				freeASTree(root->left);
+			if(root->right)
+				freeASTree(root->right);
+			delete root;
+		}
+		void evalASTree(sqlstruct::astree *root){
+			if(root == NULL)
+				return ;
+			if(root->isleaf){
+				std::cout << root->value << ' ';
+				return ;
+			}
+			if(root->operate == sqlstruct::NOT||root->operate == sqlstruct::ISNULL){
+				std::cout << root->operate << ' ';
+				evalASTree(root->left);
+			}
+			else {
+				evalASTree(root->left);
+				std::cout << root->operate << ' ';
+				evalASTree(root->right);
+			}
+		}
+		void Select(sqlstruct::selecttable node){
+			if(node.selectall)
+				std::cout << "SelectALL" <<std::endl;
+			else {
+				for(int i = 0;i<node.col.size();i++)
+					std::cout << node.col[i] << ' ';
+				std::cout << std::endl;
+			}
+			std::cout << "Fromtable: " << node.fromtable << std::endl;
+			evalASTree(node.where);
+		}
+		void Delete(sqlstruct::deletetable node){
+			std::cout << "From table: " << node.fromtable << std::endl;
+			if(node.deleteall)
+				std::cout << "Delete ALL" <<std::endl;
+			else evalASTree(node.where);
+		}
+		void Exit(){
+			exit(0);
 		}
 };
 #endif

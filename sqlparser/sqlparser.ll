@@ -27,7 +27,7 @@ ALL 	{return yy::sqlparser::make_ALL(loc);}
 
 
 <BTWMODE>AND	{BEGIN(0); return yy::sqlparser::make_AND(loc);}
-AND	{return yy::sqlparser::make_AND(loc);}
+AND	{return yy::sqlparser::make_ANDOP(loc);}
 AS	{return yy::sqlparser::make_AS(loc);}
 AUTO_INCREMENT	{return yy::sqlparser::make_AUTO_INCREMENT(sqlstruct::AUTO_INCREMENT,loc);}
 BETWEEN	{BEGIN(BTWMODE); return yy::sqlparser::make_BETWEEN(loc);}
@@ -84,13 +84,13 @@ WHERE	{return yy::sqlparser::make_WHERE(loc);}
 
 "&&"	{return yy::sqlparser::make_ANDOP(loc);}
 "||"	{return yy::sqlparser::make_OR(loc);}
-"=="|"="	{return yy::sqlparser::make_COMPARISON(4,loc);}
-"<=>"	{return yy::sqlparser::make_COMPARISON(12,loc);}
-">="	{return yy::sqlparser::make_COMPARISON(6,loc);}
-">"	{return yy::sqlparser::make_COMPARISON(2,loc);}
-"<="	{return yy::sqlparser::make_COMPARISON(5,loc);}
-"<"	{return yy::sqlparser::make_COMPARISON(1,loc);}
-"!="|"<>"	{return yy::sqlparser::make_COMPARISON(3,loc);}
+"=="|"="	{return yy::sqlparser::make_COMPARISON(sqlstruct::OR,loc);}
+"<=>"	{return yy::sqlparser::make_COMPARISON(sqlstruct::EQUAL,loc);}
+">="	{return yy::sqlparser::make_COMPARISON(sqlstruct::GREATOREQUAL,loc);}
+">"	{return yy::sqlparser::make_COMPARISON(sqlstruct::GREAT,loc);}
+"<="	{return yy::sqlparser::make_COMPARISON(sqlstruct::LESSOREQUAL,loc);}
+"<"	{return yy::sqlparser::make_COMPARISON(sqlstruct::LESS,loc);}
+"!="|"<>"	{return yy::sqlparser::make_COMPARISON(sqlstruct::NOTEQUAL,loc);}
 
 
 [A-Za-z][A-Za-z0-9_]*	{return yy::sqlparser::make_NAME(yytext,loc);}

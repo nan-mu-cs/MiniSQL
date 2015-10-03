@@ -1,22 +1,24 @@
 ALL: sqlparser
-CC:clang++ -stdlib=libc++
+CC=g++
+FLEX = /usr/local/bin/flex
+BISON = /usr/local/bin/bison
 sqlparser: sqlparser_driver.o sqlparser.o sqlparser_scanner.o main.o
-	g++ -w -o sqlparser sqlparser_driver.o sqlparser.o sqlparser_scanner.o main.o
+	g++ -o sqlparser sqlparser_driver.o sqlparser.o sqlparser_scanner.o main.o
 
 sqlparser_driver.o: sqlparser_driver.cpp sqlparser_driver.hh sqlparser.hh
-	g++ -w -c sqlparser_driver.cpp
+	g++ -c sqlparser_driver.cpp
 
 sqlparser.o: sqlparser.cpp sqlparser.hh sqlparser_driver.hh
-	g++ -w -c sqlparser.cpp
+	g++ -c sqlparser.cpp
 
 sqlparser.cpp sqlparser.hh: sqlparser.yy
-	/usr/local/bin/bison --defines=sqlparser.hh -o sqlparser.cpp sqlparser.yy
+	BISON --defines=sqlparser.hh -o sqlparser.cpp sqlparser.yy
 
 sqlparser_scanner.o: sqlparser_scanner.cpp  sqlparser.hh sqlparser_driver.hh
-	g++ -w -c sqlparser_scanner.cpp
+	g++ -c sqlparser_scanner.cpp
 
 sqlparser_scanner.cpp: sqlparser.ll
-	/usr/local/bin/flex -o sqlparser_scanner.cpp sqlparser.ll
+	FLEX -o sqlparser_scanner.cpp sqlparser.ll
 
 main.o:  sqlparser_driver.hh main.cpp
 	g++ -w -c main.cpp 

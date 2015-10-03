@@ -1153,7 +1153,7 @@ YY_RULE_SETUP
 case 4:
 YY_RULE_SETUP
 #line 30 "sqlparser.ll"
-{return yy::sqlparser::make_AND(loc);}
+{return yy::sqlparser::make_ANDOP(loc);}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
@@ -1403,37 +1403,37 @@ YY_RULE_SETUP
 case 54:
 YY_RULE_SETUP
 #line 87 "sqlparser.ll"
-{return yy::sqlparser::make_COMPARISON(4,loc);}
+{return yy::sqlparser::make_COMPARISON(sqlstruct::OR,loc);}
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
 #line 88 "sqlparser.ll"
-{return yy::sqlparser::make_COMPARISON(12,loc);}
+{return yy::sqlparser::make_COMPARISON(sqlstruct::EQUAL,loc);}
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
 #line 89 "sqlparser.ll"
-{return yy::sqlparser::make_COMPARISON(6,loc);}
+{return yy::sqlparser::make_COMPARISON(sqlstruct::GREATOREQUAL,loc);}
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
 #line 90 "sqlparser.ll"
-{return yy::sqlparser::make_COMPARISON(2,loc);}
+{return yy::sqlparser::make_COMPARISON(sqlstruct::GREAT,loc);}
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
 #line 91 "sqlparser.ll"
-{return yy::sqlparser::make_COMPARISON(5,loc);}
+{return yy::sqlparser::make_COMPARISON(sqlstruct::LESSOREQUAL,loc);}
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
 #line 92 "sqlparser.ll"
-{return yy::sqlparser::make_COMPARISON(1,loc);}
+{return yy::sqlparser::make_COMPARISON(sqlstruct::LESS,loc);}
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
 #line 93 "sqlparser.ll"
-{return yy::sqlparser::make_COMPARISON(3,loc);}
+{return yy::sqlparser::make_COMPARISON(sqlstruct::NOTEQUAL,loc);}
 	YY_BREAK
 case 61:
 YY_RULE_SETUP

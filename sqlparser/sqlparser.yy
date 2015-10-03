@@ -25,7 +25,7 @@
 %define parse.trace
 %define parse.error verbose
 %code{
-#include "sqlparser_driver.hh"
+	#include "sqlparser_driver.hh"
 }
 %token <std::string> NAME
 %token <std::string> STRING
@@ -89,27 +89,31 @@
 %left "+" "-"
 %left "*" "/"
 %nonassoc UMINUS
-%type <int> select_opts select_expr_list
-%type <int> val_list opt_val_list 
-%type <int> table_references
+/*%type <int> table_references*/
 %type <std::vector<std::string>> column_list 
 %type <sqlstruct::record_t> create_definition
 /*%type <intval> delete_opts*/
 
-%type <int>  update_asgn_list
+/*%type <int>  update_asgn_list*/
 %type <int> data_type 
 %type <int> opt_length
-%type <int> expr
-%type <int> update_stmt
+/*%type <int> update_stmt*/
 %type <sqlstruct::create_col_list> create_col_list
 %type <sqlstruct::createtable> create_table_stmt
 %type <std::vector<sqlstruct::col_attr>> column_atts
 %type <std::string> drop_table_stmt
 %type <sqlstruct::dropindex> drop_index_stmt
 %type <std::string> execfile_stmt
-%type <float> numexp
+%type <int> intexp
+%type <float> floatexp
 %type <std::vector<sqlstruct::insertitem>> insert_vals 
 %type <sqlstruct::insertvalues> insert_stmt;
+%type <sqlstruct::astree*> expr
+%type <std::vector<std::string>> select_expr_list
+%type <sqlstruct::astree*> opt_where
+%type <sqlstruct::selecttable> select_stmt
+%type <sqlstruct::deletetable> delete_stmt
+%type <sqlstruct::createindex> create_index_stmt
 %start stmt_list
 %%
 
@@ -118,35 +122,38 @@ stmt_list: stmt ";"
 	| error ";"
 	| stmt_list error ";"
 
-expr: NAME {emit("NAME %s",($1).c_str()); }
-  	| STRING {emit("STRING %s",($1).c_str()); }
-	| numexp {} 
-	| expr ANDOP expr {emit("AND");}
-	| expr OR expr {emit("OR");}
-	| expr XOR expr {emit("XOR");}
-	| expr "&" expr {emit("BITAND");}
-	| NOT expr {emit("NOT");}
-	| "!" expr {emit("NOT");}
-	| expr COMPARISON expr {emit("CMP %d",$2);}
-	| expr IS NULLX {emit("ISNULL");}
-	| expr IS NOT NULLX {emit("ISNULL"); emit("NOT");}
-	| expr BETWEEN expr AND expr %prec BETWEEN {emit("BETWEEN");}
+expr: NAME {$$ = driver.newLeafNode($1); }
+	| intexp {$$ = driver.newLeafNode(itostr($1));}
+	| floatexp {$$ = driver.newLeafNode(ftostr($1));}
+	| "(" expr ")" {$$ = $2;}
+	| expr ANDOP expr {std::cout << "In and"<< std::endl;$$ = driver.newInternalNode($1,sqlstruct::AND,$3);}
+	| expr OR expr {$$ = driver.newInternalNode($1,sqlstruct::OR,$3);}
+	| NOT expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}
+	| "!" expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}
+	| expr COMPARISON expr {$$ = driver.newInternalNode($1,$2,$3);}
+	| expr IS NULLX {$$ = driver.newInternalNode($1,sqlstruct::ISNULL,NULL);}
+	| expr IS NOT NULLX {$$ = driver.newInternalNode($1,sqlstruct::ISNULL,NULL); $$ = driver.newInternalNode($$,sqlstruct::NOT,NULL);}
+	| expr BETWEEN expr AND expr %prec BETWEEN { 
+						    sqlstruct::astree *left,*right;
+						    left = driver.newInternalNode($1,sqlstruct::GREATOREQUAL,$3);
+						    right = driver.newInternalNode($1,sqlstruct::LESSOREQUAL,$5);
+						    $$ = driver.newInternalNode(left,sqlstruct::AND,right);}
 	;
 
-val_list: expr {$$ = 1;}
-	| expr "," val_list {$$ = $3 + 1;}
-	;
 /*stmt: numexp {std::cout << $1 << std::endl;} */
 
-numexp: INTNUM {$$ = $1;}
-        | FLOATNUM {$$ = $1;}
-	| numexp "+" numexp {$$ = $1 + $3;}
-	| numexp "-" numexp {$$ = $1 + $3;}
-	| numexp "*" numexp {$$ = $1 * $3;}
-	| numexp "/" numexp {$$ = $1 / $3;}
-	| "-" numexp %prec UMINUS {$$ = -$2;}
+intexp: INTNUM {$$ = $1;}
+	| intexp "+" intexp {$$ = $1 + $3;}
+	| intexp "-" intexp {$$ = $1 + $3;}
+	| intexp "*" intexp {$$ = $1 * $3;}
+	| intexp "/" intexp {$$ = $1 / $3;}
+	| "-" intexp %prec UMINUS {$$ = -$2;}
+	| intexp "|" intexp {$$ = $1 | $3;}
+	| intexp "&" intexp {$$ = $1 & $3;}
+	| "!" intexp {$$ = !$2;}	
+	| "(" intexp ")" {$$ = $2;}	
 	;
-/*
+
 floatexp: FLOATNUM {$$ = $1;}
 	| floatexp "+" floatexp {$$ = $1 + $3;}
 	| floatexp "+" intexp {$$ = $1 + $3;}
@@ -155,10 +162,14 @@ floatexp: FLOATNUM {$$ = $1;}
 	| floatexp "-" intexp {$$ = $1 - $3;}
 	| intexp "-" floatexp {$$ = $1 - $3;}
 	| floatexp "*" floatexp {$$ = $1 * $3;}
-*/
-opt_val_list: {$$ = 0;}
-	    | val_list
-	    ;
+	| floatexp "*" intexp {$$ = $1 * $3;}
+	| intexp "*" floatexp {$$ = $1 * $3;}
+	| floatexp "/" floatexp {$$ = $1 / $3;}
+	| floatexp "/" intexp {$$ = $1 / $3;}
+	| intexp "/" floatexp {$$ = $1 / $3;}
+	| "-" floatexp %prec UMINUS {$$ = -$2;}
+	| "(" floatexp ")" {$$ = $2;}
+	;
 /*
 expr : expr IN "(" val_list ")" {emit("ISIN %d",$4);}
 	| expr NOT IN "(" val_list ")" {emit("ISIN %d",$5); emit("NOT");}
@@ -170,14 +181,17 @@ expr: expr LIKE expr {emit("LIKE");}
     | expr NOT LIKE expr {emit("LIKE"); emit("NOT");}
 
 */
-stmt: select_stmt {emit("STMT");}
+stmt: select_stmt {driver.Select($1);}
     ;
 
-select_stmt:  SELECT select_expr_list FROM table_references opt_where {emit("SELECT %d %d %d",$2,$4);}
+select_stmt:  SELECT select_expr_list FROM NAME opt_where {($$).col = $2;($$).fromtable = $4;
+	   							($$).where = $5;
+								if(($2).size() == 0) ($$).selectall = true;
+								else ($$).selectall = false;}
 	;
 
-opt_where: %empty
-	 | WHERE expr {emit("WHERE");}
+opt_where: %empty {$$ = NULL;}
+	 | WHERE expr {$$ = $2;}
 	 ;
 /*
 opt_groupby:
@@ -213,9 +227,9 @@ column_list: NAME {($$).clear(); ($$).push_back($1);}
 	| column_list "," STRING {$$ = $1;($1).push_back($3);}
 
 
-select_expr_list: NAME {$$ = 1;}
-		| select_expr_list "," NAME {$$ = $1 + 1;}
-		| "*" {emit("SELECTALL"); $$ = 1;}
+select_expr_list: NAME {($$).clear();($$).push_back($1);}
+		| select_expr_list "," NAME {$$ = $1;($$).push_back($3);}
+		| "*" {($$).clear(); }
 		;
 
 /*
@@ -224,6 +238,7 @@ opt_as_alias: AS NAME {emit("ALIAS %s",($2).c_str());}
 	|
 	;
 */
+/*
 table_references: table_reference {$$ = 1;}
 	| table_references "," table_reference {$$ = $1 + 1;}
 	;
@@ -236,15 +251,16 @@ table_factor:
 	| NAME "." NAME   {emit("TABLE %s.%s",($1).c_str(),($3).c_str());} 
 	| "(" table_references ")" {emit("TABLEREFERENCES %d",$2);}
 	;
+*/
 /*
 opt_as: 
       |AS
       ;
 */
-stmt: delete_stmt {emit("STMT");}
+stmt: delete_stmt {driver.Delete($1);}
     ;
 
-delete_stmt: DELETE  FROM NAME opt_where {emit("DELETE %s",($3).c_str()); }
+delete_stmt: DELETE  FROM NAME opt_where {($$).fromtable = $3;($$).where = $4; if($4 == NULL) ($$).deleteall = true;else ($$).deleteall = false; }
 	   ;
 
 stmt: insert_stmt {driver.InsertValues($1);}
@@ -255,19 +271,18 @@ insert_stmt: INSERT opt_into NAME VALUES
 	   ;
 
 opt_into: INTO 
-	|
 	;
 /*
 insert_val_list: "(" insert_vals ")" {emit("VALUES %d",$2); $$ = 1;}
 	       |insert_val_list "," "(" insert_vals  ")" {emit("VALUES %d",$4); $$ = $1 + 1;}
 */
 insert_vals: STRING {($$).clear(); sqlstruct::insertitem item;item.data_type = sqlstruct::STRING;item.value = $1;($$).push_back(item); }
-	| INTNUM {($$).clear();sqlstruct::insertitem item;item.data_type = sqlstruct::INTNUM;item.value = itostr($1);($$).push_back(item);}
-	| FLOATNUM {($$).clear();sqlstruct::insertitem item;item.data_type = sqlstruct::FLOATNUM;item.value = ftostr($1);($$).push_back(item);}   
+	| intexp {($$).clear();sqlstruct::insertitem item;item.data_type = sqlstruct::INTNUM;item.value = itostr($1);($$).push_back(item);}
+	| floatexp {($$).clear();sqlstruct::insertitem item;item.data_type = sqlstruct::FLOATNUM;item.value = ftostr($1);($$).push_back(item);}   
 	|DEFAULT {sqlstruct::insertitem item;item.data_type = sqlstruct::DEFAULT;($$).push_back(item);}
 	|insert_vals "," STRING {sqlstruct::insertitem item;item.data_type = sqlstruct::STRING;item.value = $3;$$ = $1;($$).push_back(item);}
-	|insert_vals "," INTNUM {sqlstruct::insertitem item;item.data_type = sqlstruct::INTNUM;item.value = itostr($3);$$ = $1;($$).push_back(item);}
-	|insert_vals "," FLOATNUM {sqlstruct::insertitem item;item.data_type = sqlstruct::FLOATNUM;item.value = ftostr($3);$$ = $1;($$).push_back(item);}
+	|insert_vals "," intexp {sqlstruct::insertitem item;item.data_type = sqlstruct::INTNUM;item.value = itostr($3);$$ = $1;($$).push_back(item);}
+	|insert_vals "," floatexp {sqlstruct::insertitem item;item.data_type = sqlstruct::FLOATNUM;item.value = ftostr($3);$$ = $1;($$).push_back(item);}
 	|insert_vals "," DEFAULT {sqlstruct::insertitem item;item.data_type = sqlstruct::DEFAULT;}
 
 /*
@@ -298,7 +313,7 @@ create_col_list: create_definition {($$).record.clear();($$).record.push_back($1
 
 create_definition:  NAME data_type column_atts {($$).name = $1;($$).data_type = $2;($$).attr = $3; }
 
-column_atts: {($$).clear();}
+column_atts: %empty {($$).clear();}
 	| column_atts NOT NULLX {sqlstruct::col_attr attr; attr.type = $3 + 1000;$$ = $1;($$).push_back(attr);}
 	| column_atts NULLX 	{sqlstruct::col_attr attr; attr.type = $2;$$ = $1;($$).push_back(attr);}
 	| column_atts DEFAULT STRING {sqlstruct::col_attr attr;attr.type = $2; attr.value = $3; $$ = $1;($$).push_back(attr);}
@@ -309,14 +324,14 @@ column_atts: {($$).clear();}
 	| column_atts PRIMARY KEY {sqlstruct::col_attr attr;attr.type = $2;$$ = $1; ($$).push_back(attr);}
 	;
 
-opt_length: {$$ = 0;}
+opt_length: %empty {$$ = 0;}
 	  | "(" INTNUM ")" {$$ = $2;}
 
 data_type: INT {$$ = 40000;}
 	 |CHAR opt_length {$$ = 120000 + $2;}
 	 |FLOAT {$$ = 90000;}
-stmt: create_index_stmt {emit("STMT");}
-create_index_stmt: CREATE INDEX NAME ON NAME "(" column_list ")" {emit("INDEX %s %s",($3).c_str(),($5).c_str()); }
+stmt: create_index_stmt {driver.CreateIndex($1);}
+create_index_stmt: CREATE INDEX NAME ON NAME "(" column_list ")" {($$).indexname = $3;($$).tablename = $5;($$).col = $7; }
 
 stmt: drop_table_stmt {driver.DropTable($1);}
 
@@ -326,9 +341,9 @@ stmt: drop_index_stmt {driver.DropIndex($1);}
 
 drop_index_stmt: DROP INDEX NAME ON NAME "(" column_list ")" {($$).indexname = $3;($$).tablename = $5;($$).col = $7; }
 
-stmt: quit_stmt {emit("STMT");}
+stmt: quit_stmt {driver.Exit();}
 
-quit_stmt:QUIT {exit(0);}
+quit_stmt:QUIT
 
 stmt: execfile_stmt {driver.ExecFile($1);}
 

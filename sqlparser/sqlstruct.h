@@ -39,6 +39,28 @@ namespace sqlstruct{
 		std::string tablename;
 		std::vector<insertitem> item;
 	};
+	struct astree{
+		std::string value;
+		bool isleaf;
+		int operate;
+		struct astree *left,*right;
+	};
+	struct selecttable{
+		std::string fromtable;
+		std::vector<std::string> col;
+		bool selectall;
+		struct astree *where;
+	};
+	struct deletetable{
+		std::string fromtable;
+		struct astree *where;
+		bool deleteall;
+	};
+	struct createindex{
+		std::string indexname;
+		std::string tablename;
+		std::vector<std::string> col;
+	};
 	enum attr_type{
 		AUTO_INCREMENT,
 		DEFAULT,
@@ -48,6 +70,18 @@ namespace sqlstruct{
 		INTNUM,
 		STRING,
 		FLOATNUM
+	};
+	enum operate {
+		AND,
+		OR,
+		NOT,
+		ISNULL,
+		LESS,
+		LESSOREQUAL,
+		EQUAL,
+		GREATOREQUAL,
+		GREAT,
+		NOTEQUAL
 	};
 }
 #endif
