@@ -10,10 +10,10 @@
 #include "Interpreter.h"
 int main(){
     CatalogManager cm;
-    //cm.InitFromFile();
+    cm.InitFromFile();
     //cm.Test();
     //cm.GetTableSchema(50000);
-    cm.InitFromEmpty();
+    //cm.InitFromEmpty();
     //cm.Select();
     Interpreter it(std::cin,std::cout,&cm);
     //it.Test();

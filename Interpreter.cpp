@@ -8,10 +8,12 @@
 
 #include "Interpreter.h"
 #include <sys/stat.h>
+#include <fstream>
 #define CHARBASE 120000
 using std::istream;
 using std::string;
 using std::endl;
+using std::ifstream;
 void Interpreter::run(){
     FILE *stream;
     string tmp,used,left;
@@ -39,6 +41,38 @@ void Interpreter::run(){
             for(;i<tmp.length();i++)
                 left += tmp[i];
             parse(stream);
+            fclose(stream);
+        }
+    }
+}
+void Interpreter::ParserFile(string filepath){
+    ifstream fin;
+    fin.open(filepath.c_str(),std::ifstream::in);
+    FILE *stream;
+    while(getline(fin, tmp)){
+        tmp += "\n";
+        int i;
+        for(i = 0;i<tmp.length();i++)
+            if(tmp[i] == ';'){
+                used += ';';
+                break;
+            }
+            else {
+                used += tmp[i];
+            }
+        if(i<tmp.length()){
+            i++;
+            used = left + used;
+            tmp.clear();
+            left.clear();
+            strexec = used;
+            stream = fmemopen((void *)used.c_str(),used.length(),"r");
+            scanPushBuffer(stream);
+            used.clear();
+            for(;i<tmp.length();i++)
+                left += tmp[i];
+            parse(stream);
+            scanPopBuffer();
             fclose(stream);
         }
     }
@@ -98,7 +132,7 @@ void Interpreter::CreateIndex(sqlstruct::createindex &node){
     for(int i = 0;i<node.col.size();i++){
         int j;
         for(j = 0;j<table.col.record.size();j++)
-            if(node.col[i] == table.col.record[i].name)
+            if(node.col[i] == table.col.record[j].name)
                 break;
         if(j == table.col.record.size()){
             out << "Error: Table " << node.tablename << " does not have cols " << node.col[i] << endl;
@@ -114,13 +148,14 @@ void Interpreter::ExecFile(std::string filename){
         out << "Error: File " + filename << " does not exist" << endl;
         return ;
     }
-    FILE *stream = fopen(filename.c_str(), "r");
-    scanPushBuffer(stream);
-    yy::sqlparser parser(*this);
-    parser.set_debug_level(false);
-    parser.parse();
-    fclose(stream);
-    scanPopBuffer();
+    //FILE *stream = fopen(filename.c_str(), "r");
+    //scanPushBuffer(stream);
+    //yy::sqlparser parser(*this);
+    //parser.set_debug_level(false);
+    //parser.parse();
+    //fclose(stream);
+    //scanPopBuffer();
+    ParserFile(filename);
 }
 
 void Interpreter::InsertValues(sqlstruct::insertvalues node){

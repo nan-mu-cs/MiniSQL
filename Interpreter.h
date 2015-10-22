@@ -20,6 +20,7 @@ public:
     void run();
     istream &in;
     ostream &out;
+    std::string tmp,used,left;
     bool checktable;
     sqlstruct::createtable ctable;
     CatalogManager *cm;
@@ -35,7 +36,9 @@ public:
     void InsertValues(sqlstruct::insertvalues node);//done
     void Select(sqlstruct::selecttable node) ;//not check where clause
     void Delete(sqlstruct::deletetable node);//not check where clause
-    void Exit(){};
+    void Exit(){exit(0);};
+    //void Parser(istream &in,bool file = false);
+    void ParserFile(std::string filepath);
     //void ParserStr(std::string);
     void Test(){
         std::cout << "Hello world" << std::endl;}

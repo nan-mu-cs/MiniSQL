@@ -246,7 +246,7 @@ void CatalogManager::map(off_t pos,table_t *table){
     table->createstr = ss.str();
     ss.str("");
     int numofindex = 0;
-    fread(&numofindex,sizeof(int),1,fp);
+    fread(&numofindex,sizeof(size_t),1,fp);
     char name[NAME_LENGTH];
     table->numofIndex = numofindex;
     for(int i = 0;i<numofindex;i++)
@@ -374,6 +374,7 @@ off_t CatalogManager::Alloc(size_t size){
         blockused = BLOCK_HEAD_SIZE + size;
         fseek(fp, indexblock*BLOCKSIZE, SEEK_SET);
         fwrite(&blockused, sizeof(size_t), 1, fp);
+        unmap();
         return BLOCK_HEAD_SIZE + indexblock*BLOCKREMAINDER;
     }
     else{
@@ -381,6 +382,7 @@ off_t CatalogManager::Alloc(size_t size){
         blockused += size;
         fseek(fp, meta.end*BLOCKSIZE, SEEK_SET);
         fwrite(&blockused, sizeof(size_t), 1, fp);
+        unmap();
         return tmp + indexblock*BLOCKREMAINDER;
     }
 }

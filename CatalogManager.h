@@ -55,7 +55,7 @@ private:
     };
     FILE *fp;
     int flevel;
-    std::string filename = "/Users/andyyang/Desktop/BplusTree/BplusTree/test.txt";
+    std::string filename = "/Users/andyyang/Documents/MiniSQL/MiniSQL/test.txt";
     /*
     struct tablelist_t{
         char name[NAME_LENGTH];
