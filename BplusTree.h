@@ -20,21 +20,20 @@ namespace bpt {
 #define BLOCKSIZE 4096
 #define value_t off_t
 #define NODESIZE (sizeof(node_t) - 2*sizeof(struct record_t*) + (meta.order+1)*sizeof(struct record_t)) + 4
-    struct meta_t{
-        size_t order;
-        size_t valueSize;
-        size_t keySize;
-        //size_t internalNodeNum;
-        //size_t leafNodeNum;
-        size_t height;
-        off_t slot;
-        off_t rootOffset;
-        off_t leafOffset;
-    };
-    template<typename key_t>
+template<typename key_t>
     class BplusTree{
     private:
-        meta_t meta;
+        struct meta_t{
+            size_t order;
+            size_t valueSize;
+            size_t keySize;
+            //size_t internalNodeNum;
+            //size_t leafNodeNum;
+            //size_t height;
+            off_t slot;
+            off_t rootOffset;
+            off_t leafOffset;
+        } meta;
         struct record_t{
             key_t key;
             off_t value;
@@ -138,6 +137,15 @@ namespace bpt {
             if(wd == 6)
                 return true;
             else return false;
+        }
+        bool map(off_t pos){
+            Openfile();
+            fseek(fp,pos,SEEK_SET);
+            size_t rd = fread(meta,sizeof(meta),1,fp);
+            Closefile();
+            if(rd!=1)
+                return false;
+            else return true;
         }
         off_t SearchNode(off_t rt,const key_t &key){
             node_t node;
@@ -773,7 +781,7 @@ namespace bpt {
             meta.order = order;
         }
         void BuildNewTree(){
-            meta.height = 1;
+            //meta.height = 1;
             meta.slot = OFFSET_META + sizeof(meta);
             meta.rootOffset = -1;
             meta.valueSize = sizeof(record_t)*(meta.order+1);
