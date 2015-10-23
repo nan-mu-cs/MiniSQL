@@ -8,7 +8,9 @@
 #include <iostream>
 #include "CatalogManager.h"
 #include "Interpreter.h"
+#include "IndexManager.h"
 int main(){
+    IndexManager im;
     CatalogManager cm;
     cm.InitFromFile();
     //cm.Test();

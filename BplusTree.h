@@ -19,21 +19,74 @@ namespace bpt {
 #define OFFSET_META 0
 #define BLOCKSIZE 4096
 #define value_t off_t
+#define RECORD_START_BLOCK 2
+#define META_START_BLOCK 1
+#define BLOCK_HEAD 8
+#define META_SIZE 48
 #define NODESIZE (sizeof(node_t) - 2*sizeof(struct record_t*) + (meta.order+1)*sizeof(struct record_t)) + 4
+char filepath[FILENAME] = "test";
+struct mem_t{
+    off_t freeblock;
+    off_t record_endblock;
+    off_t record_nowblock;
+    off_t meta_nowblock;
+    off_t meta_endblock;
+} mem;
+FILE *fp;
+int fp_level;
+void Openfile(const char *mode="rb+"){
+    if(fp_level == 0)
+        fp = fopen(filepath,mode);
+    fp_level++;
+}
+void Closefile(){
+    if(fp_level == 1)
+        fclose(fp);
+    fp_level--;
+}
+
+off_t AllocMeta(){
+    size_t used = 0;
+    bool flag = false;
+    if(mem.meta_nowblock == -1){
+        mem.meta_nowblock = META_START_BLOCK;
+        flag = true;
+    }
+    else {
+        Openfile();
+        fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
+        fread(&used, sizeof(size_t), 1, fp);
+    }
+    if(used + META_SIZE>BLOCKSIZE||flag){
+        used = 0;
+        if(!flag){
+            if(mem.freeblock!=-1)
+                mem.meta_nowblock = mem.freeblock;
+            else{
+                mem.meta_nowblock = mem.meta_endblock + 1;
+                mem.meta_endblock++;
+            }
+        }
+        Openfile();
+        fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
+        used = META_SIZE + BLOCK_HEAD;
+        fwrite(&used, sizeof(size_t), 1, fp);
+        Closefile();
+        return BLOCK_HEAD + mem.meta_nowblock*BLOCKSIZE;
+    }
+    else {
+        off_t tmp = used;
+        used += META_SIZE;
+        Openfile();
+        fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
+        fwrite(&used, sizeof(size_t), 1, fp);
+        Closefile();
+        return tmp + mem.meta_nowblock*BLOCKSIZE;
+    }
+}
 template<typename key_t>
     class BplusTree{
     private:
-        struct meta_t{
-            size_t order;
-            size_t valueSize;
-            size_t keySize;
-            //size_t internalNodeNum;
-            //size_t leafNodeNum;
-            //size_t height;
-            off_t slot;
-            off_t rootOffset;
-            off_t leafOffset;
-        } meta;
         struct record_t{
             key_t key;
             off_t value;
@@ -58,28 +111,6 @@ template<typename key_t>
             size_t n;
             struct record_t *children;
         };*/
-        char filepath[FILENAME] = "/Users/andyyang/Desktop/BplusTree/BplusTree/1.in";
-        FILE *fp;
-        int fp_level;
-        void Openfile(const char *mode="rb+"){
-            if(fp_level == 0)
-                fp = fopen(filepath,mode);
-            fp_level++;
-        }
-        void Closefile(){
-            if(fp_level == 1)
-                fclose(fp);
-            fp_level--;
-        }
-        bool map(meta_t *block,off_t offset,size_t size){
-            Openfile();
-            fseek(fp,offset,SEEK_SET);
-            size_t rd = fread(block,size,1,fp);
-            Closefile();
-            if(rd!=1)
-                return false;
-            else return true;
-        }
         bool map(node_t *node,off_t offset){
             Openfile();
             fseek(fp,offset,SEEK_SET);
@@ -97,9 +128,43 @@ template<typename key_t>
             else return false;
         }
         off_t AllocStorage(size_t size){
-            off_t slot = meta.slot;
-            meta.slot += size;
-            return slot;
+            //off_t slot = meta.slot;
+            //meta.slot += size;
+            //if(mem.nowblock == -1)
+            bool flag = false;
+            size_t used = 0;
+            if(mem.record_nowblock == -1){
+                flag = true;
+                mem.record_nowblock = RECORD_START_BLOCK;
+            }
+            else {
+                Openfile();
+                fseek(fp, mem.record_nowblock*BLOCKSIZE, SEEK_SET);
+                fread(&used,sizeof(size_t),1,fp);
+            }
+            if(flag||used + size>BLOCKSIZE){
+                used = 0;
+                if(!flag){
+                    if(mem.freeblock !=-1)
+                        mem.record_nowblock = mem.freeblock;
+                    else mem.record_nowblock = ++mem.record_endblock;
+                }
+                used = size + BLOCK_HEAD;
+                Openfile();
+                fseek(fp, mem.record_nowblock*BLOCKSIZE, SEEK_SET);
+                fwrite(&used, sizeof(size_t), 1, fp);
+                Closefile();
+                return BLOCK_HEAD + BLOCKSIZE*mem.record_nowblock;
+            }
+            else {
+                off_t tmp = used;
+                used += size;
+                Openfile();
+                fseek(fp, mem.record_nowblock*BLOCKSIZE, SEEK_SET);
+                fwrite(&used, sizeof(size_t), 1, fp);
+                Closefile();
+                return tmp + mem.record_nowblock*BLOCKSIZE;
+            }
         }
         off_t AllocStorage(node_t &node){
             //node.n = 1;
@@ -108,15 +173,6 @@ template<typename key_t>
             off_t slot = meta.slot;
             meta.slot += NODESIZE;//needed changed
             return slot;
-        }
-        bool unmap(meta_t *block,off_t offset,size_t size){
-            Openfile();
-            fseek(fp,offset,SEEK_SET);
-            size_t wd = fwrite(block,size,1,fp);
-            Closefile();
-            if(wd == 1)
-                return true;
-            else return false;
         }
         bool unmap(node_t *node,off_t offset){
             Openfile();
@@ -714,6 +770,49 @@ template<typename key_t>
             delete [] tmp;
         }
     public:
+        off_t pos;
+        struct meta_t{
+            size_t order;
+            size_t valueSize;
+            size_t keySize;
+            //size_t internalNodeNum;
+            //size_t leafNodeNum;
+            //size_t height;
+            off_t slot;
+            off_t rootOffset;
+            off_t leafOffset;
+        } meta;
+        bool map(meta_t *block,off_t offset,size_t size){
+            Openfile();
+            fseek(fp,offset,SEEK_SET);
+            size_t rd = fread(block,size,1,fp);
+            Closefile();
+            if(rd!=1)
+                return false;
+            else return true;
+        }
+        bool unmap(meta_t *block,off_t offset,size_t size){
+            Openfile();
+            fseek(fp,offset,SEEK_SET);
+            size_t wd = fwrite(block,size,1,fp);
+            Closefile();
+            if(wd == 1)
+                return true;
+            else return false;
+        }
+/*
+        off_t AllocMeta(){
+            size_t used;
+            Openfile();
+            fread(&used, sizeof(size_t), 1, fp);
+            size_t size = sizeof(meta);
+            size_t tmp = used;
+            used += size;
+            if(used <BLOCKSIZE){
+                fwrite(&used, sizeof(size), 1, fp);
+            }
+        }
+*/
         bool remove(const key_t &key){
             off_t p = SearchNode(meta.rootOffset, key);
             node_t node;
@@ -780,17 +879,21 @@ template<typename key_t>
         void setOrder(size_t order){
             meta.order = order;
         }
-        void BuildNewTree(){
+        void BuildNewTree(off_t pos,size_t size){
             //meta.height = 1;
-            meta.slot = OFFSET_META + sizeof(meta);
+            //meta.slot = OFFSET_META + sizeof(meta);
             meta.rootOffset = -1;
+            meta.keySize = size;
             meta.valueSize = sizeof(record_t)*(meta.order+1);
-            unmap(&meta,OFFSET_META,sizeof(meta));
+            meta.order = (BLOCKSIZE - 3*sizeof(off_t) - sizeof(size_t) - sizeof(bool))/(meta.keySize+meta.valueSize)-1;
+            unmap(&meta,pos,sizeof(meta));
         }
-        BplusTree(bool newTree = true):fp(NULL),fp_level(0){
-           if(!newTree)
-                map(&meta,OFFSET_META,sizeof(meta));
+        BplusTree(off_t pos = 0,bool newTree = false){
+            if(!newTree){
+                map(&meta,pos,sizeof(meta));
+            }
            else Openfile("w+");
+            this->pos = pos;
         }
         void printAllLeaf(){
             off_t next = meta.leafOffset;
@@ -890,6 +993,21 @@ template<typename key_t>
                 key_t
                 std::cout <<
             }
+        }*/
+        ~BplusTree(){
+            unmap(&meta, pos, sizeof(meta));
+        }
+        /*
+        static void InitFromEmpty(){
+            Openfile();
+            mem.freeblock = mem.endblock = -1;
+            fseek(fp, 0,SEEK_SET);
+            fread(&mem, sizeof(mem), 1, fp);
+        }
+        static void InitFromFile(){
+            Openfile();
+            fseek(fp, 0, SEEK_SET);
+            fread(&mem, sizeof(mem), 1, fp);
         }*/
     };
 }

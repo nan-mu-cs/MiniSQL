@@ -8,7 +8,6 @@
 
 #ifndef ____IndexManager__
 #define ____IndexManager__
-#include "BplusTree.h"
 #include "sqlstruct.h"
 #include <stdio.h>
 #include <string.h>
@@ -72,7 +71,7 @@ struct Float{
 };
 struct String{
     char *value;
-    static size_t size;
+    size_t size;
     bool cmp(const struct String &a,const struct String &b) const {
         return strcmp(a.value,b.value);
     }
@@ -96,12 +95,11 @@ struct String{
         strcpy(value, a);
     }
     String(const char *a){
+        size = strlen(a);
         value = new char [size];
         strcpy(value,a);
     }
-    String(){
-        value = new char [size];
-    }
+    String(){}
     ~String(){
         delete [] value;
     }
@@ -112,11 +110,15 @@ class IndexManager {
 public:
     void InitFromEmpty();
     void InitFromFile();
-    off_t newIndex(std::vector<std::string> col);
+    off_t newIndex(int dataType);
     void DeleteIndex(off_t pos);
     void InsertKey(off_t pos,int key,off_t value);
     void InsertKey(off_t pos,float key,off_t value);
-    void DeleteKey(off_t pos,char *key,off_t value);
+    void InsertKey(off_t pos,char *key,off_t value);
+    void InsertKey(off_t pos,sqlstruct::insertitem item,off_t value);
+    void DeleteKey(off_t pos,char *key);
+    void DeleteKey(off_t pos,int key);
+    void DeleteKey(off_t pos,float key);
     off_t SearchKey(off_t pos,int key);
     off_t SearchKey(off_t pos,float key);
     off_t SearchKey(off_t pos,char *key);
