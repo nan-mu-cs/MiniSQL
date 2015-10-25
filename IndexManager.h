@@ -11,6 +11,7 @@
 #include "sqlstruct.h"
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
 struct Integer{
     int value;
     bool cmp(const struct Integer &a,const struct Integer &b) const {
@@ -60,8 +61,10 @@ struct Float{
     friend bool operator<(const struct Float &a,const struct Float &b){
         return a.value<b.value;
     }
-    void operator=(const float &a){
+    Float& operator=(const float &a){
+        std::cout << "enter" << a << std::endl;
         value = a;
+        return *this;
     }
     Float(const float &a){
         value = a;
@@ -71,9 +74,11 @@ struct Float{
 };
 struct String{
     char *value;
+    //static int times;
+    //static int create;
     size_t size;
     bool cmp(const struct String &a,const struct String &b) const {
-        return strcmp(a.value,b.value);
+        return strcmp(a.value,b.value)<=0;
     }
     friend bool operator==(const struct String &a,const struct String &b){
         return strcmp(a.value, b.value) == 0;
@@ -90,21 +95,59 @@ struct String{
     friend bool operator<(const struct String &a,const struct String &b){
         return strcmp(a.value, b.value)<0;
     }
-    void operator=(const char *a){
-        memset(value, 0, size*sizeof(char));
-        strcpy(value, a);
+    String& operator=(const String &a){
+        //std::cout << "enter operator=" << std::endl;
+        size = a.size;
+        if(this!=&a){
+            if(value)
+                delete value;
+            value = new char [a.size];
+            strcpy(value,a.value);
+        }
+        return *this;
     }
-    String(const char *a){
-        size = strlen(a);
+    String(const char *a,size_t size){
+        this->size = size;
         value = new char [size];
+        //std::cout << "create " << create  << "  ";
+        //printf("%x\n",value);
+        //create++;
         strcpy(value,a);
     }
-    String(){}
-    ~String(){
-        delete [] value;
+    String(){
+        //value = NULL;
+        //std::cout << "create " << create << "  ";
+        //printf("%x\n",value);
+        //create++;
+        value = NULL;
+        size = 0;
     }
+    ~String(){
+        //std::cout << "in string destory func " << times << "  ";
+        //printf("%x\n",value);
+        //times++;
+        if(value){
+            delete value;
+        }
+    }
+    String(const String &a){
+        size = a.size;
+        value = new char[size];
+        strcpy(value,a.value);
+    }
+    /*
+    void Read(FILE *fp){
+        if(value)
+            delete value;
+        value = new char[size];
+        fread(value,sizeof(char)*size,1,fp);
+        fread(&size,sizeof(size_t),1,fp);
+    }
+    void Write(FILE *fp){
+        fwrite(value,sizeof(char)*size,1,fp);
+        fwrite(&size,sizeof(size_t),1,fp);
+    }*/
 };
-
 
 class IndexManager {
 public:

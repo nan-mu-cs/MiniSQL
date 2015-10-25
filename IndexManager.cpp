@@ -26,8 +26,9 @@ void IndexManager::InsertKey(off_t pos, float key, off_t value){
     tree.insert(fkey, value);
 }
 void IndexManager::InsertKey(off_t pos, char * key, off_t value){
-    String skey(key);
     bpt::BplusTree<String> tree(pos);
+    size_t size = tree.meta.keySize - sizeof(size_t);
+    String skey(key,size);
     tree.insert(skey, value);
 }
 /*
@@ -66,8 +67,9 @@ void IndexManager::DeleteKey(off_t pos, float key){
 }
 
 void IndexManager::DeleteKey(off_t pos, char *key){
-    String skey = key;
     bpt::BplusTree<String> tree(pos);
+    size_t size = tree.meta.keySize - sizeof(size_t);
+    String skey(key,size);
     tree.remove(skey);
 }
 
@@ -75,24 +77,28 @@ off_t IndexManager::SearchKey(off_t pos, int key){
     Integer ikey = key;
     bpt::BplusTree<Integer> tree(pos);
     off_t keypos;
-    tree.search(ikey, keypos);
-    return keypos;
+    if(tree.search(ikey, keypos))
+        return keypos;
+    else return -1;
 }
 
 off_t IndexManager::SearchKey(off_t pos, float key){
     Float fkey = key;
     bpt::BplusTree<Float> tree(pos);
     off_t keypos;
-    tree.search(fkey, keypos);
-    return keypos;
+    if(tree.search(fkey, keypos))
+        return keypos;
+    else return -1;
 }
 
 off_t IndexManager::SearchKey(off_t pos, char *key){
-    String skey = key;
     bpt::BplusTree<String> tree(pos);
+    size_t size = tree.meta.keySize - sizeof(size_t);
+    String skey(key,size);
     off_t keypos;
-    tree.search(skey, keypos);
-    return keypos;
+    if(tree.search(skey, keypos))
+        return keypos;
+    else return -1;
 }
 
 void IndexManager::DeleteIndex(off_t pos){
@@ -120,14 +126,14 @@ off_t IndexManager::newIndex(int dataType){
     else if(dataType == sqlstruct::FLOATNUM){
         bpt::BplusTree<Float> tree;
         off_t pos = AllocMeta();
-        tree.BuildNewTree(pos, sizeof(Integer));
+        tree.BuildNewTree(pos, sizeof(Float));
         return pos;
     }
     else {
         int size = dataType - sqlstruct::CHAR;
         bpt::BplusTree<String> tree;
         off_t pos = AllocMeta();
-        tree.BuildNewTree(pos, sizeof(size_t) + size + 1);
+        tree.BuildNewTree(pos, sizeof(size_t) + size);
         return pos;
     }
 }

@@ -9,18 +9,54 @@
 #include "CatalogManager.h"
 #include "Interpreter.h"
 #include "IndexManager.h"
+#include "sqlstruct.h"
+using namespace std;
+void nextChar(char *str){
+    for(int i = 0;i<31;i++)
+        if(str[i]<'z'){
+            str[i]++;
+            break;
+        }
+}
+//int String::times = 0;
+//int String::create = 0;
 int main(){
     IndexManager im;
-    CatalogManager cm;
-    cm.InitFromFile();
+    im.InitFromEmpty();
+    off_t pos;
+    pos = im.newIndex(sqlstruct::CHAR + 32);
+    //pos = im.newIndex(sqlstruct::FLOATNUM);
+    char str[32];
+    for(int i = 0;i<31;i++)
+        str[i] = 'a';
+    str[31] = '\0';
+    for(int i = 0;i<300;i++){
+        nextChar(str);
+        im.InsertKey(pos, str, i);
+    }
+    //im.DeleteKey(pos, );
+    //im.DeleteKey(pos, 21);
+    //cout << im.SearchKey(pos, 103)<< endl;
+    //for(int i = 30;i<50;i++)
+      //  im.DeleteKey(pos, i*1.0f);
+    for(int i = 0;i<31;i++)
+        str[i] = 'a';
+    str[31] = '\0';
+    for(int i = 0;i<300;i++){
+        nextChar(str);
+        if(im.SearchKey(pos, str) == -1)
+            cout << i << endl;
+    }
+    //CatalogManager cm;
+    //cm.InitFromFile();
     //cm.Test();
     //cm.GetTableSchema(50000);
     //cm.InitFromEmpty();
     //cm.Select();
-    Interpreter it(std::cin,std::cout,&cm);
+    //Interpreter it(std::cin,std::cout,&cm);
     //it.Test();
     //Interpreter it;
-    it.run();
+    //it.run();
 }
 
 /*
