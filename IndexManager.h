@@ -135,35 +135,38 @@ struct String{
         value = new char[size];
         strcpy(value,a.value);
     }
-    /*
-    void Read(FILE *fp){
-        if(value)
-            delete value;
-        value = new char[size];
-        fread(value,sizeof(char)*size,1,fp);
-        fread(&size,sizeof(size_t),1,fp);
-    }
-    void Write(FILE *fp){
-        fwrite(value,sizeof(char)*size,1,fp);
-        fwrite(&size,sizeof(size_t),1,fp);
-    }*/
 };
 
 class IndexManager {
 public:
+    /*do some basic setting, using it when the first time construct db*/
     void InitFromEmpty();
+    /*after first time construct db, then every time initialize IndexManager, call this func*/
     void InitFromFile();
+    /*create new index(new bplustree) dataType are define in sqlstruct.h (note number of char is dataType - CHAR)
+     *return head addr of bpt(be store in catalog file) 
+     */
     off_t newIndex(int dataType);
+    /*delete index*/
     void DeleteIndex(off_t pos);
+    /*Insert int into bpt, pos is bpt's head addr(store in catalog file),value is the addr of this record*/
     void InsertKey(off_t pos,int key,off_t value);
+    /*Insert float into bpt*/
     void InsertKey(off_t pos,float key,off_t value);
+    /*insert char into bpt*/
     void InsertKey(off_t pos,char *key,off_t value);
-    void InsertKey(off_t pos,sqlstruct::insertitem item,off_t value);
+    //void InsertKey(off_t pos,sqlstruct::insertitem item,off_t value);
+    /*delete char key*/
     void DeleteKey(off_t pos,char *key);
+    /*delete int key*/
     void DeleteKey(off_t pos,int key);
+    /*delete float key*/
     void DeleteKey(off_t pos,float key);
+    /*search int key*/
     off_t SearchKey(off_t pos,int key);
+    /*search float key*/
     off_t SearchKey(off_t pos,float key);
+    /*search char key*/
     off_t SearchKey(off_t pos,char *key);
 };
 #endif /* defined(____IndexManager__) */
