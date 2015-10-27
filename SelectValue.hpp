@@ -134,9 +134,9 @@ public:
                 return *iValue == *(v2.iValue);
                 break;
             case CHARN:
-                if (this->size != v2.size) {
-                    throw typeNotMatchError;
-                }
+//                if (this->size != v2.size) {
+//                    throw typeNotMatchError;
+//                }
                 if (strcmp(cValue, v2.cValue) == 0) {
                     return true;
                 }else{
@@ -156,9 +156,9 @@ public:
                 return *iValue < *(v2.iValue);
                 break;
             case CHARN:
-                if (this->size != v2.size) {
-                    throw typeNotMatchError;
-                }
+//                if (this->size != v2.size) {
+//                    throw typeNotMatchError;
+//                }
                 if (strcmp(cValue, v2.cValue) < 0) {
                     return true;
                 }else{
