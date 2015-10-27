@@ -12,6 +12,7 @@
 #include <stdio.h>//
 #include "sqlstruct.h"
 #include "sqlparser_driver.hh"
+#include "BufferManager.hpp"
 class CatalogManager:public sqlparser_driver{
 private:
 #define NAME_LENGTH 32
@@ -71,6 +72,7 @@ private:
     off_t Alloc(size_t size);
     //off_t Alloc(table_t table);
     void Unalloc(off_t pos,size_t size);
+    BufferManager *bm;
     //void Unalloc(table_t table);
 
     /*
@@ -115,9 +117,9 @@ private:
 public:
     CatalogManager();
     /*open catalog file*/
-    void Openfile();
+    //void Openfile();
     /*close catalog file*/
-    void Closefile();
+    //void Closefile();
     /*add index into catalog, type createindex is define in sqlstruct.h, pos is the addr of head of bpt*/
     bool addIndex(sqlstruct::createindex index,off_t pos);
     /*add table into catalog,name is table name,createstr is the sql cmd that create the table*/
@@ -140,5 +142,7 @@ public:
     //size_t hashFindName(std::string name);
     //size_t hashFindPos(std::string name);
     void Createtable(sqlstruct::createtable &table);
+    void SetBuffer(BufferManager &bm){this->bm = &bm;}
+    ~CatalogManager(){unmap();}
 };
 #endif /* defined(____CatalogManager__) */

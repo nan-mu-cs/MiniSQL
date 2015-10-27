@@ -187,7 +187,7 @@ unsigned int CatalogManager::hashFunc(string value){
     }
     return (hash&0x7fffffff)%HASH_SIZE;
 }
-
+/*
 void CatalogManager::Openfile(){
     if(flevel == 0){
         fp = fopen(filename.c_str(), "rb+");
@@ -199,17 +199,23 @@ void CatalogManager::Closefile(){
         fclose(fp);
     }
     flevel--;
-}
+}*/
+
 void CatalogManager::map(off_t pos,hash_t *table){
     //size_t indexofblock = pos / BLOCKREMAINDER;
     //size_t index = pos % BLOCKREMAINDER;
-    Openfile();
+    //Openfile();
     char name[NAME_LENGTH];
     off_t position;
-    fseek(fp, pos*BLOCKSIZE, SEEK_SET);
+    int offset = 0;
+    //fseek(fp, pos*BLOCKSIZE, SEEK_SET);
     for(int i = 0;i<HASH_SIZE;i++){
-        fread(name, NAME_LENGTH, 1, fp);
-        fread(&position, sizeof(off_t),1, fp);
+        //fread(name, NAME_LENGTH, 1, fp);
+        //fread(&position, sizeof(off_t),1, fp);
+        bm->constReadBuffer(filename, pos, name, offset, sizeof(char)*NAME_LENGTH);
+        offset += sizeof(char)*NAME_LENGTH;
+        bm->constReadBuffer(filename, pos, &position, offset, sizeof(off_t));
+        offset += sizeof(off_t);
         stringstream ss;
         ss << name;
         table[i].name = ss.str();
@@ -220,38 +226,54 @@ void CatalogManager::map(off_t pos,hash_t *table){
 void CatalogManager::unmap(off_t pos, hash_t *table){
     //size_t indexofblock = pos / BLOCKREMAINDER;
     //size_t index = pos - indexofblock * BLOCKREMAINDER;
-    Openfile();
+    //Openfile();
     char name[NAME_LENGTH];
-    fseek(fp, pos*BLOCKSIZE, SEEK_SET);
+    //fseek(fp, pos*BLOCKSIZE, SEEK_SET);
+    int offset = 0;
     for(int i = 0;i<HASH_SIZE;i++){
         memset(name, 0, NAME_LENGTH);
         strcpy(name,table[i].name.c_str());
-        fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
-        fwrite(&(table[i].pos), sizeof(off_t), 1, fp);
+        //fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
+        //fwrite(&(table[i].pos), sizeof(off_t), 1, fp);
+        bm->writeBuffer(filename, pos, name, offset, sizeof(char)*NAME_LENGTH);
+        offset += sizeof(char)*NAME_LENGTH;
+        bm->writeBuffer(filename, pos, &table[i].pos, offset, sizeof(off_t));
+        offset += sizeof(off_t);
     }
+    bm->save();
 }
 void CatalogManager::map(off_t pos,table_t *table){
-    size_t indexofblock = pos / BLOCKREMAINDER;
-    size_t index = pos % BLOCKREMAINDER;
-    Openfile();
-    fseek(fp, indexofblock*BLOCKSIZE+index, SEEK_SET);
+    size_t blockindex = pos / BLOCKREMAINDER;
+    size_t blockoffset = pos % BLOCKREMAINDER;
+    //Openfile();
+    //fseek(fp, indexofblock*BLOCKSIZE+index, SEEK_SET);
     size_t lengthofstr = 0;
-    fread(&(table->pos), sizeof(off_t), 1, fp);
-    fread(&lengthofstr, sizeof(size_t), 1, fp);
+    //fread(&(table->pos), sizeof(off_t), 1, fp);
+    //fread(&lengthofstr, sizeof(size_t), 1, fp);
+    bm->constReadBuffer(filename, blockindex, &(table->pos), blockoffset, sizeof(off_t));
+    blockoffset += sizeof(off_t);
+    bm->constReadBuffer(filename, blockindex, &lengthofstr, blockoffset, sizeof(size_t));
+    blockoffset += sizeof(size_t);
     char *createstr = new char[lengthofstr];
-    fread(createstr,sizeof(char)*lengthofstr,1,fp);
+    //fread(createstr,sizeof(char)*lengthofstr,1,fp);
+    bm->constReadBuffer(filename, blockindex, createstr, blockoffset, sizeof(char)*lengthofstr);
+    blockoffset += sizeof(char)*lengthofstr;
     stringstream ss;
     ss.str("");
     ss << createstr;
     table->createstr = ss.str();
     ss.str("");
     int numofindex = 0;
-    fread(&numofindex,sizeof(size_t),1,fp);
+    //fread(&numofindex,sizeof(size_t),1,fp);
+    bm->constReadBuffer(filename, blockindex, &numofindex, blockoffset, sizeof(size_t));
+    blockoffset += sizeof(size_t);
     char name[NAME_LENGTH];
     table->numofIndex = numofindex;
     for(int i = 0;i<numofindex;i++)
     {
-        fread(name,sizeof(char)*NAME_LENGTH,1,fp);
+        //fread(name,sizeof(char)*NAME_LENGTH,1,fp);
+        bm->constReadBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
+        blockoffset += sizeof(char)*NAME_LENGTH;
         ss << name;
         table->index[i] = ss.str();
         ss.str("");
@@ -260,47 +282,68 @@ void CatalogManager::map(off_t pos,table_t *table){
 }
 
 void CatalogManager::unmap(off_t pos, table_t *table){
-    size_t indexofblock = pos / BLOCKREMAINDER;
-    size_t index = pos % BLOCKREMAINDER;
-    Openfile();
-    fseek(fp, indexofblock*BLOCKSIZE+index, SEEK_SET);
+    size_t blockindex = pos / BLOCKREMAINDER;
+    size_t blockoffset = pos % BLOCKREMAINDER;
+    //Openfile();
+    //fseek(fp, indexofblock*BLOCKSIZE+index, SEEK_SET);
     size_t lengthofstr = table->createstr.size();
     lengthofstr++;
-    fwrite(&(table->pos), sizeof(off_t), 1, fp);
-    fwrite(&lengthofstr, sizeof(size_t), 1, fp);
+    //fwrite(&(table->pos), sizeof(off_t), 1, fp);
+    //fwrite(&lengthofstr, sizeof(size_t), 1, fp);
+    bm->writeBuffer(filename, blockindex, &(table->pos), blockoffset, sizeof(off_t));
+    blockoffset += sizeof(off_t);
+    bm->writeBuffer(filename, blockindex, &lengthofstr, blockoffset, sizeof(size_t));
+    blockoffset += sizeof(size_t);
     char *createstr = new char [lengthofstr];
     strcpy(createstr,table->createstr.c_str());
-    fwrite(createstr, sizeof(char)*lengthofstr, 1, fp);
+    //fwrite(createstr, sizeof(char)*lengthofstr, 1, fp);
+    bm->writeBuffer(filename, blockindex, createstr, blockoffset, sizeof(char)*lengthofstr);
+    blockoffset += sizeof(char)*lengthofstr;
     delete [] createstr;
-    fwrite(&(table->numofIndex), sizeof(size_t), 1, fp);
+    //fwrite(&(table->numofIndex), sizeof(size_t), 1, fp);
+    bm->writeBuffer(filename, blockindex, &(table->numofIndex), blockoffset, sizeof(size_t));
+    blockoffset += sizeof(size_t);
     char name[NAME_LENGTH];
     for(int i = 0;i<table->numofIndex;i++){
         memset(name, 0, NAME_LENGTH);
         strcpy(name, table->index[i].c_str());
-        fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
+        //fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
+        bm->writeBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
+        blockoffset += sizeof(char)*NAME_LENGTH;
     }
+    bm->save();
 }
 
 void CatalogManager::map(off_t pos,index_t *indextable){
-    size_t indexofblock = pos / BLOCKREMAINDER;
-    size_t index = pos % BLOCKREMAINDER;
-    Openfile();
-    fseek(fp, indexofblock*BLOCKSIZE+index, SEEK_SET);
-    fread(&(indextable->pos),sizeof(off_t),1,fp);
+    size_t blockindex = pos / BLOCKREMAINDER;
+    size_t blockoffset = pos % BLOCKREMAINDER;
+    //Openfile();
+    //fseek(fp, indexofblock*BLOCKSIZE+index, SEEK_SET);
+    //fread(&(indextable->pos),sizeof(off_t),1,fp);
+    bm->constReadBuffer(filename, blockindex, &(indextable->pos), blockoffset, sizeof(off_t));
+    blockoffset += sizeof(off_t);
     char name[NAME_LENGTH];
     stringstream ss;
     ss.str("");
-    fread(name, sizeof(char)*NAME_LENGTH, 1, fp);
+    //fread(name, sizeof(char)*NAME_LENGTH, 1, fp);
+    bm->constReadBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
+    blockoffset += sizeof(char)*NAME_LENGTH;
     ss << name;
     indextable->name = ss.str();
     ss.str("");
-    fread(name, sizeof(char)*NAME_LENGTH, 1, fp);
+    //fread(name, sizeof(char)*NAME_LENGTH, 1, fp);
+    bm->constReadBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
+    blockoffset += sizeof(char)*NAME_LENGTH;
     ss << name;
     indextable->table = ss.str();
     ss.str("");
-    fread(&(indextable->numofcol), sizeof(size_t), 1, fp);
+    //fread(&(indextable->numofcol), sizeof(size_t), 1, fp);
+    bm->constReadBuffer(filename, blockindex, &(indextable->numofcol), blockoffset, sizeof(size_t));
+    blockoffset += sizeof(size_t);
     for(int i = 0;i<indextable->numofcol;i++){
-        fread(name, sizeof(char)*NAME_LENGTH, 1, fp);
+        //fread(name, sizeof(char)*NAME_LENGTH, 1, fp);
+        bm->constReadBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
+        blockoffset += sizeof(char)*NAME_LENGTH;
         ss << name;
         indextable->col[i] = ss.str();
         ss.str("");
@@ -308,48 +351,62 @@ void CatalogManager::map(off_t pos,index_t *indextable){
 }
 
 void CatalogManager::map(){
-    Openfile();
-    fseek(fp, 0, SEEK_SET);
-    fread(&(meta.tablepos), sizeof(off_t), 1, fp);
-    fread(&(meta.indexpos), sizeof(off_t), 1, fp);
-    fread(&(meta.freeblock), sizeof(off_t), 1, fp);
-    fread(&(meta.head), sizeof(off_t), 1, fp);
-    fread(&(meta.end), sizeof(off_t), 1, fp);
+    //Openfile();
+    //fseek(fp, 0, SEEK_SET);
+    //fread(&(meta.tablepos), sizeof(off_t), 1, fp);
+    //fread(&(meta.indexpos), sizeof(off_t), 1, fp);
+    //fread(&(meta.freeblock), sizeof(off_t), 1, fp);
+    //fread(&(meta.head), sizeof(off_t), 1, fp);
+    //fread(&(meta.end), sizeof(off_t), 1, fp);
+    bm->constReadBuffer(filename, 0, &meta, 0, sizeof(meta));
 }
 
 void CatalogManager::unmap(){
-    Openfile();
-    fseek(fp, 0, SEEK_SET);
-    fwrite(&(meta.tablepos), sizeof(off_t), 1, fp);
-    fwrite(&(meta.indexpos), sizeof(off_t), 1, fp);
-    fwrite(&(meta.freeblock), sizeof(off_t), 1, fp);
-    fwrite(&(meta.head), sizeof(off_t), 1, fp);
-    fwrite(&(meta.end), sizeof(off_t), 1, fp);
+    //Openfile();
+    //fseek(fp, 0, SEEK_SET);
+    //fwrite(&(meta.tablepos), sizeof(off_t), 1, fp);
+    //fwrite(&(meta.indexpos), sizeof(off_t), 1, fp);
+    //fwrite(&(meta.freeblock), sizeof(off_t), 1, fp);
+    //fwrite(&(meta.head), sizeof(off_t), 1, fp);
+    //fwrite(&(meta.end), sizeof(off_t), 1, fp);
+    bm->writeBuffer(filename, 0, &meta, 0, sizeof(meta));
+    bm->save();
 }
 
 void CatalogManager::unmap(off_t pos,index_t *indextable){
-    size_t indexofblock = pos / BLOCKREMAINDER;
-    size_t index = pos % BLOCKREMAINDER;
-    Openfile();
-    fseek(fp, indexofblock*BLOCKSIZE+index, SEEK_SET);
+    size_t blockindex = pos / BLOCKREMAINDER;
+    size_t blockoffset = pos % BLOCKREMAINDER;
+    //Openfile();
+    //fseek(fp, indexofblock*BLOCKSIZE+index, SEEK_SET);
     char name[NAME_LENGTH];
-    fwrite(&(indextable->pos), sizeof(off_t), 1, fp);
+    //fwrite(&(indextable->pos), sizeof(off_t), 1, fp);
+    bm->writeBuffer(filename, blockindex, &(indextable->pos), blockoffset, sizeof(off_t));
+    blockoffset += sizeof(off_t);
     memset(name, 0, NAME_LENGTH);
     strcpy(name,indextable->name.c_str());
-    fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
+    //fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
+    bm->writeBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
+    blockoffset += sizeof(char)*NAME_LENGTH;
     memset(name, 0, NAME_LENGTH);
     strcpy(name,indextable->table.c_str());
-    fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
-    fwrite(&(indextable->numofcol), sizeof(size_t), 1, fp);
+    //fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
+    //fwrite(&(indextable->numofcol), sizeof(size_t), 1, fp);
+    bm->writeBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
+    blockoffset += sizeof(char)*NAME_LENGTH;
+    bm->writeBuffer(filename, blockindex, &(indextable->numofcol), blockoffset, sizeof(size_t));
+    blockoffset += sizeof(size_t);
     for(int i = 0;i<indextable->numofcol;i++){
         memset(name, 0, NAME_LENGTH);
         strcpy(name, indextable->name.c_str());
-        fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
+        //fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
+        bm->writeBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
+        blockoffset += sizeof(char)*NAME_LENGTH;
     }
+    bm->save();
 }
 
 off_t CatalogManager::Alloc(size_t size){
-    Openfile();
+    //Openfile();
     //size_t tsize = sizeof(table);
     size_t blockused = 0;
     bool flag = false;
@@ -357,8 +414,9 @@ off_t CatalogManager::Alloc(size_t size){
     if(meta.end == -1)
         flag = true;
     else {
-        fseek(fp, meta.end*BLOCKSIZE, SEEK_SET);
-        fread(&blockused, sizeof(size_t), 1, fp);
+        //fseek(fp, meta.end*BLOCKSIZE, SEEK_SET);
+        //fread(&blockused, sizeof(size_t), 1, fp);
+        bm->constReadBuffer(filename, meta.end, &blockused, 0, sizeof(size_t));
     }
     if(flag||BLOCKSIZE - blockused <= size){
         if(meta.freeblock == -1){
@@ -372,16 +430,19 @@ off_t CatalogManager::Alloc(size_t size){
         }
         else indexblock = meta.freeblock;
         blockused = BLOCK_HEAD_SIZE + size;
-        fseek(fp, indexblock*BLOCKSIZE, SEEK_SET);
-        fwrite(&blockused, sizeof(size_t), 1, fp);
+        //fseek(fp, indexblock*BLOCKSIZE, SEEK_SET);
+        //fwrite(&blockused, sizeof(size_t), 1, fp);
+        bm->writeBuffer(filename, indexblock, &blockused, 0, sizeof(size_t));
+        //bm->save();
         unmap();
         return BLOCK_HEAD_SIZE + indexblock*BLOCKREMAINDER;
     }
     else{
         size_t tmp = blockused;
         blockused += size;
-        fseek(fp, meta.end*BLOCKSIZE, SEEK_SET);
-        fwrite(&blockused, sizeof(size_t), 1, fp);
+        //fseek(fp, meta.end*BLOCKSIZE, SEEK_SET);
+        //fwrite(&blockused, sizeof(size_t), 1, fp);
+        bm->writeBuffer(filename, meta.end, &blockused, 0, sizeof(size_t));
         unmap();
         return tmp + indexblock*BLOCKREMAINDER;
     }
@@ -392,6 +453,7 @@ void CatalogManager::Unalloc(off_t pos,size_t size){
 }
 void CatalogManager::InitFromEmpty(){
     fp = fopen(filename.c_str(), "wb+");
+    fclose(fp);
     meta.tablepos = 1;
     meta.indexpos = 2;
     meta.end = -1;
@@ -400,25 +462,46 @@ void CatalogManager::InitFromEmpty(){
     off_t sign = -1;
     char str[NAME_LENGTH];
     memset(str, 0, sizeof(char)*NAME_LENGTH);
-    fseek(fp, meta.tablepos*BLOCKSIZE, SEEK_SET);
+    //fseek(fp, meta.tablepos*BLOCKSIZE, SEEK_SET);
+    int blockindex = meta.tablepos;
+    int blockoffset = 0;
     for(int i = 0;i<HASH_SIZE;i++){
         //fseek(fp, sizeof(char)*NAME_LENGTH, SEEK_CUR);
-        fwrite(str, sizeof(char)*NAME_LENGTH, 1, fp);
-        fwrite(&sign, sizeof(off_t), 1, fp);
+        //fwrite(str, sizeof(char)*NAME_LENGTH, 1, fp);
+        //fwrite(&sign, sizeof(off_t), 1, fp);
+        bm->writeBuffer(filename, blockindex, str, blockoffset, sizeof(char)*NAME_LENGTH);
+        blockoffset += sizeof(char)*NAME_LENGTH;
+        bm->writeBuffer(filename, blockindex, &sign, blockoffset, sizeof(off_t));
+        blockoffset += sizeof(off_t);
+        if(BLOCKSIZE - blockoffset < sizeof(char)*NAME_LENGTH + sizeof(off_t)){
+            blockindex++;
+            blockoffset = 0;
+        }
     }
-    fseek(fp, meta.indexpos*BLOCKSIZE, SEEK_SET);
+    //fseek(fp, meta.indexpos*BLOCKSIZE, SEEK_SET);
+    blockindex = meta.indexpos;
+    blockoffset = 0;
     for(int i = 0;i<HASH_SIZE;i++){
         //fseek(fp, sizeof(char)*NAME_LENGTH, SEEK_CUR);
-        fwrite(str, sizeof(char)*NAME_LENGTH, 1, fp);
-        fwrite(&sign, sizeof(off_t), 1, fp);
+        //fwrite(str, sizeof(char)*NAME_LENGTH, 1, fp);
+        //fwrite(&sign, sizeof(off_t), 1, fp);
+        bm->writeBuffer(filename, blockindex, str, blockoffset, sizeof(char)*NAME_LENGTH);
+        blockoffset += sizeof(char)*NAME_LENGTH;
+        bm->writeBuffer(filename, blockindex, &sign, blockoffset, sizeof(off_t));
+        blockoffset += sizeof(off_t);
+        if(BLOCKSIZE - blockoffset < sizeof(char)*NAME_LENGTH + sizeof(off_t)){
+            blockindex++;
+            blockoffset = 0;
+        }
     }
-    fclose(fp);
+    bm->save();
+    //fclose(fp);
     unmap();
 }
 sqlstruct::createtable CatalogManager::GetTableSchema(off_t pos){
     table_t table;
     //size_t indexofblock = pos % BLOCKREMAINDER;
-    Openfile();
+   // Openfile();
     map(pos,&table);
     FILE* stream;
     stream = fmemopen((void*)table.createstr.c_str(), table.createstr.length(), "r");

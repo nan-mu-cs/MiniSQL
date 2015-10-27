@@ -25,12 +25,14 @@ void nextstr(){
 
 int main(){
     CatalogManager cm;
-    cm.InitFromEmpty();
+    cm.SetBuffer(bm);
+    cm.InitFromFile();
+    //cm.InitFromEmpty();
     //cm.Select();
-    IndexManager im;
-    im.SetBuffer(bm);
+    //IndexManager im;
+    //im.SetBuffer(bm);
     //im.InitFromEmpty();
-    im.InitFromFile();
+    //im.InitFromFile();
     /*
     off_t pos = im.newIndex(sqlstruct::INTNUM);
     for(int i = 0;i<300;i++){
@@ -48,15 +50,16 @@ int main(){
         im.InsertKey(pos, str, i);
         nextstr();
     }*/
+    /*
     off_t pos = 10008;
     strcpy(str, "aaaaaaaaa");
     for(int i = 0;i<300;i++){
         if(im.SearchKey(pos, str) == -1)
             cout << i << endl;
-    }
+    }*/
     //cout << im.SearchKey(pos, "aasdfasdf") << endl;
-    //Interpreter it(std::cin,std::cout,&cm);
-    //it.run();
+    Interpreter it(std::cin,std::cout,&cm);
+    it.run();
 }
 
 /*
