@@ -108,13 +108,18 @@ void IndexManager::InitFromEmpty(){
     mem.freeblock = -1;
     mem.meta_nowblock = mem.meta_endblock = -1;
     mem.record_nowblock = mem.record_endblock = -1;
-    fp = fopen(filepath,"wb+");
+    fp = fopen(filepath.c_str(),"wb+");
+    fclose(fp);
     //fseek(fp, sizeof(b), SEEK_SET);
-    fwrite(&mem, sizeof(mem), 1, fp);
+    //fwrite(&mem, sizeof(mem), 1, fp);
+    bm->writeBuffer(filepath, 0, &mem, 0, sizeof(mem));
+    bm->save();
 }
 void IndexManager::InitFromFile(){
-    fp = fopen(filepath, "rb+");
-    fread(&mem, sizeof(mem), 1, fp);
+    //fp = fopen(filepath, "rb+");
+    //fread(&mem, sizeof(mem), 1, fp);
+    bm->constReadBuffer(filepath, 0, &mem, 0, sizeof(mem));
+    //bm->save();
 }
 off_t IndexManager::newIndex(int dataType){
     if(dataType == sqlstruct::INTNUM){
@@ -136,5 +141,13 @@ off_t IndexManager::newIndex(int dataType){
         tree.BuildNewTree(pos, sizeof(size_t) + size);
         return pos;
     }
+}
+
+void IndexManager::SetBuffer(BufferManager &buffer){
+    bpt::bm = &buffer;
+}
+IndexManager::~IndexManager(){
+    bm->writeBuffer(filepath, 0, &mem, 0, sizeof(mem));
+    bm->save();
 }
 

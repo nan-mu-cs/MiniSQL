@@ -23,12 +23,12 @@ private:
     CatalogManager *cm;
     std::string strexec;
 public:
-    /*run interpreter*/
-    void run();
     //input stream
     istream &in;
     //output stream
     ostream &out;
+    /*run interpreter*/
+    void run();
     Interpreter(istream &is,ostream &os,CatalogManager* cm):in(is),out(os){
         this->cm = cm;
     }

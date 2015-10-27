@@ -15,6 +15,7 @@
 #include <iostream>
 #include <queue>
 #include "IndexManager.h"
+#include "BufferManager.hpp"
 namespace bpt {
 #define FILENAME 512
 #define OFFSET_META 0
@@ -24,8 +25,10 @@ namespace bpt {
 #define META_START_BLOCK 1
 #define BLOCK_HEAD 8
 #define META_SIZE 48
+#define BLOCKREMAINDER 10000
 #define NODESIZE (sizeof(node_t) - 2*sizeof(struct record_t*) + (meta.order+1)*sizeof(struct record_t)) + 4
-char filepath[FILENAME] = "/Users/andyyang/Documents/MiniSQL/MiniSQL/index.txt";
+//char filepath[FILENAME] = "/Users/andyyang/Documents/MiniSQL/MiniSQL/index.txt";
+std::string filepath = "/Users/andyyang/Documents/MiniSQL/MiniSQL/index.txt";
 struct mem_t{
     off_t freeblock;
     off_t record_endblock;
@@ -34,7 +37,9 @@ struct mem_t{
     off_t meta_endblock;
 } mem;
 FILE *fp;
+BufferManager *bm;
 int fp_level;
+    /*
 void Openfile(const char *mode="rb+"){
     if(fp_level == 0)
         fp = fopen(filepath,mode);
@@ -44,7 +49,7 @@ void Closefile(){
     if(fp_level == 1)
         fclose(fp);
     fp_level--;
-}
+}*/
 int NextFreeBlock(){
     return -1;
 }
@@ -53,12 +58,14 @@ off_t AllocMeta(){
     bool flag = false;
     if(mem.meta_nowblock == -1){
         mem.meta_nowblock = META_START_BLOCK;
+        mem.meta_endblock = META_START_BLOCK;
         flag = true;
     }
     else {
-        Openfile();
-        fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
-        fread(&used, sizeof(size_t), 1, fp);
+        //Openfile();
+        //fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
+        //fread(&used, sizeof(size_t), 1, fp);
+        bm->constReadBuffer(filepath, mem.meta_nowblock, &used, 0, sizeof(size_t));
     }
     if(used + META_SIZE>BLOCKSIZE||flag){
         used = 0;
@@ -70,21 +77,25 @@ off_t AllocMeta(){
                 mem.meta_endblock++;
             }
         }
-        Openfile();
-        fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
+        //Openfile();
+        //fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
         used = META_SIZE + BLOCK_HEAD;
-        fwrite(&used, sizeof(size_t), 1, fp);
-        Closefile();
-        return BLOCK_HEAD + mem.meta_nowblock*BLOCKSIZE;
+        //fwrite(&used, sizeof(size_t), 1, fp);
+        //Closefile();
+        bm->writeBuffer(filepath, mem.meta_nowblock, &used, 0, sizeof(size_t));
+        bm->save();
+        return BLOCK_HEAD + mem.meta_nowblock*BLOCKREMAINDER;
     }
     else {
         off_t tmp = used;
         used += META_SIZE;
-        Openfile();
-        fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
-        fwrite(&used, sizeof(size_t), 1, fp);
-        Closefile();
-        return tmp + mem.meta_nowblock*BLOCKSIZE;
+        //Openfile();
+        //fseek(fp, mem.meta_nowblock*BLOCKSIZE, SEEK_SET);
+        //fwrite(&used, sizeof(size_t), 1, fp);
+        //Closefile();
+        bm->writeBuffer(filepath, mem.meta_nowblock, &used, 0, sizeof(size_t));
+        bm->save();
+        return tmp + mem.meta_nowblock*BLOCKREMAINDER;
     }
 }
 template<typename key_t>
@@ -114,26 +125,43 @@ template<typename key_t>
             size_t n;
             struct record_t *children;
         };*/
-        bool map(node_t *node,off_t offset){
-            Openfile();
-            fseek(fp,offset,SEEK_SET);
+        void map(node_t *node,off_t pos){
+            //Openfile();
+            //fseek(fp,offset,SEEK_SET);
+            /*
             size_t rd = fread(&(node->parent),sizeof(node->parent),1,fp);
             rd += fread(&(node->pre),sizeof(node->pre),1,fp);
             rd += fread(&(node->next),sizeof(node->next),1,fp);
             rd += fread(&(node->n),sizeof(node->n),1,fp);
             rd += fread(&(node->isleaf),sizeof(node->isleaf),1,fp);
+            */
+            int blockindex = pos/BLOCKREMAINDER;
+            int blockoffset = pos%BLOCKREMAINDER;
+            bm->constReadBuffer(filepath, blockindex, &(node->parent), blockoffset, sizeof(node->parent));
+            blockoffset += sizeof(node->parent);
+            bm->constReadBuffer(filepath, blockindex, &(node->pre), blockoffset, sizeof(node->pre));
+            blockoffset += sizeof(node->pre);
+            bm->constReadBuffer(filepath, blockindex, &(node->next), blockoffset, sizeof(node->next));
+            blockoffset += sizeof(node->next);
+            bm->constReadBuffer(filepath, blockindex, &(node->n), blockoffset, sizeof(node->n));
+            blockoffset += sizeof(node->n);
+            bm->constReadBuffer(filepath, blockindex, &(node->isleaf), blockoffset, sizeof(node->isleaf));
+            blockoffset += sizeof(node->isleaf);
             //rd += fread(node->children,(meta.keySize + meta.valueSize),meta.order+1,fp);
             for(int i = 0;i<meta.order+1;i++){
                 //node->children[i].key.Read(fp);
-                Read(fp,node->children[i].key);
-                fread(&(node->children[i].value),sizeof(value_t),1,fp);
+                Read(blockindex,blockoffset,node->children[i].key);
+                //fread(&(node->children[i].value),sizeof(value_t),1,fp);
+                bm->constReadBuffer(filepath, blockindex, &(node->children[i].value), blockoffset, sizeof(value_t));
+                blockoffset += sizeof(value_t);
             }
+            //bm->save();
             //Closefile();
             //for(int i = 0;i<node->n;i++)
               //  std::cout << node->children[i].key.k << std::endl;
-            if(rd == 6)
-                return true;
-            else return false;
+            //if(rd == 6)
+              //  return true;
+            //else return false;
         }
         off_t AllocStorage(){
             //off_t slot = meta.slot;
@@ -176,15 +204,16 @@ template<typename key_t>
             }*/
             if(mem.freeblock!=-1){
                 mem.freeblock = NextFreeBlock();
-                return mem.freeblock*BLOCKSIZE;
+                return mem.freeblock*BLOCKREMAINDER;
             }
             else if(mem.record_endblock == -1){
+                mem.record_nowblock = RECORD_START_BLOCK;
                 mem.record_endblock = RECORD_START_BLOCK;
-                return mem.record_endblock*BLOCKSIZE;
+                return mem.record_endblock*BLOCKREMAINDER;
             }
             else{
                 mem.record_endblock++;
-                return mem.record_endblock*BLOCKSIZE;
+                return mem.record_endblock*BLOCKREMAINDER;
             }
         }
         /*
@@ -196,40 +225,74 @@ template<typename key_t>
             meta.slot += NODESIZE;//needed changed
             return slot;
         }*/
-        bool unmap(node_t *node,off_t offset){
-            Openfile();
-            fseek(fp,offset,SEEK_SET);
+        void unmap(node_t *node,off_t pos){
+            //Openfile();
+            //fseek(fp,offset,SEEK_SET);
+            /*
             size_t wd = fwrite(&(node->parent),sizeof(node->parent),1,fp);
             wd += fwrite(&(node->pre),sizeof(node->pre),1,fp);
             wd += fwrite(&(node->next),sizeof(node->next),1,fp);
             wd += fwrite(&(node->n),sizeof(node->n),1,fp);
             wd += fwrite(&(node->isleaf),sizeof(node->isleaf),1,fp);
             //wd += fwrite(node->children,(meta.keySize + meta.valueSize),meta.order+1,fp);
+            */
+            int blockindex = pos/BLOCKREMAINDER;
+            int blockoffset = pos % BLOCKREMAINDER;
+            bm->writeBuffer(filepath, blockindex, &(node->parent), blockoffset, sizeof(node->parent));
+            blockoffset += sizeof(node->parent);
+            bm->writeBuffer(filepath, blockindex, &(node->pre), blockoffset, sizeof(node->pre));
+            blockoffset += sizeof(node->pre);
+            bm->writeBuffer(filepath, blockindex, &(node->next), blockoffset, sizeof(node->next));
+            blockoffset += sizeof(node->next);
+            bm->writeBuffer(filepath, blockindex, &(node->n), blockoffset, sizeof(node->n));
+            blockoffset += sizeof(node->n);
+            bm->writeBuffer(filepath, blockindex, &(node->isleaf), blockoffset, sizeof(node->isleaf));
+            blockoffset += sizeof(node->isleaf);
             for(int i = 0;i<meta.order+1;i++){
                 //node->children[i].key.Write(fp);
-                Write(fp,node->children[i].key);
-                fwrite(&(node->children[i].value),sizeof(value_t),1,fp);
+                Write(blockindex,blockoffset,node->children[i].key);
+                //fwrite(&(node->children[i].value),sizeof(value_t),1,fp);
+                bm->writeBuffer(filepath, blockindex, &(node->children[i].value), blockoffset, sizeof(value_t));
+                blockoffset += sizeof(value_t);
             }
-            Closefile();
+            bm->save();
+            //Closefile();
             //Openfile();
             //fseek(fp,offset,SEEK_SET);
             //off_t parent;
             //fread(&parent, sizeof(off_t), 1, fp);
             //std::cout << parent << std::endl;
             //Closefile();
-            if(wd == 6)
-                return true;
-            else return false;
+            //if(wd == 6)
+             //   return true;
+            //else return false;
         }
-        bool map(off_t pos){
-            Openfile();
-            fseek(fp,pos,SEEK_SET);
-            size_t rd = fread(meta,sizeof(meta),1,fp);
-            Closefile();
-            if(rd!=1)
-                return false;
-            else return true;
+        void map(off_t pos){
+            int blockindex = pos/BLOCKREMAINDER;
+            int blockoffset = pos % BLOCKREMAINDER;
+            //Openfile();
+            //fseek(fp,pos,SEEK_SET);
+            //size_t rd = fread(meta,sizeof(meta),1,fp);
+            //Closefile();
+            //if(rd!=1)
+              //  return false;
+            //else return true;
+            bm->constReadBuffer(filepath, blockindex, &meta, blockoffset, sizeof(meta));
         }
+        void unmap(off_t pos){
+            //Openfile();
+            //fseek(fp,offset,SEEK_SET);
+            //size_t wd = fwrite(block,size,1,fp);
+            //Closefile();
+            //if(wd == 1)
+            //return true;
+            //else return false;
+            int blockindex = pos /BLOCKREMAINDER;
+            int blockoffset = pos % BLOCKREMAINDER;
+            bm->writeBuffer(filepath, blockindex, &meta, blockoffset, sizeof(meta));
+            bm->save();
+        }
+
         off_t SearchNode(off_t rt,const key_t &key){
             node_t node;
             node.children = new record_t[meta.order+1];
@@ -497,7 +560,8 @@ template<typename key_t>
                 unmap(&pnode,p);
                 unmap(&newpnode,newp);
                 unmap(&newroot,newrootpointer);
-                unmap(&meta,pos,sizeof(meta));
+                //unmap(&meta,pos,sizeof(meta));
+                unmap(pos);
                 //free(pnode.children);
                 delete [] pnode.children;
                 //free(newpnode.children);
@@ -595,7 +659,8 @@ template<typename key_t>
                 else if(node.n == 0){
                     meta.rootOffset = node.children[0].value;
                     UnallocStorage(p);
-                    unmap(&meta,pos,sizeof(meta));
+                    //unmap(&meta,pos,sizeof(meta));
+                    unmap(pos);
                     delete [] node.children;
                     return true;
                 }
@@ -809,6 +874,7 @@ template<typename key_t>
             off_t rootOffset;
             off_t leafOffset;
         } meta;
+        /*
         bool map(meta_t *block,off_t offset,size_t size){
             Openfile();
             fseek(fp,offset,SEEK_SET);
@@ -827,7 +893,9 @@ template<typename key_t>
                 return true;
             else return false;
         }
-/*
+         */
+
+        /*
         off_t AllocMeta(){
             size_t used;
             Openfile();
@@ -871,7 +939,8 @@ template<typename key_t>
                 meta.rootOffset = AllocStorage();
                 meta.leafOffset = meta.rootOffset;
                 unmap(&root,meta.rootOffset);
-                unmap(&meta,pos,sizeof(meta));
+                //unmap(&meta,pos,sizeof(meta));
+                unmap(pos);
                 delete [] root.children;
                 return ;
             }
@@ -914,13 +983,15 @@ template<typename key_t>
             meta.valueSize = sizeof(value_t);
             meta.order = (BLOCKSIZE - 3*sizeof(off_t) - sizeof(size_t) - sizeof(bool))/(meta.keySize+meta.valueSize)-1;
             //meta.valueSize = sizeof(record_t)*(meta.order+1);
-            unmap(&meta,pos,sizeof(meta));
+            //unmap(&meta,pos,sizeof(meta));
+            unmap(pos);
         }
         BplusTree(off_t pos = 0,bool newTree = false){
             if(!newTree){
-                map(&meta,pos,sizeof(meta));
+                //map(&meta,pos,sizeof(meta));
+                map(pos);
             }
-           else Openfile("w+");
+           //else Openfile("w+");
             this->pos = pos;
         }
         void printAllLeaf(){
@@ -1023,10 +1094,11 @@ template<typename key_t>
             }
         }*/
         ~BplusTree(){
-            unmap(&meta, pos, sizeof(meta));
+            //unmap(&meta, pos, sizeof(meta));
+            unmap(pos);
         }
-        template <typename T> void Read(FILE *fp,T &ele);
-        template <typename T> void Write(FILE *fp,T &ele);
+        template <typename T> void Read(int index,int &offset,T &ele);
+        template <typename T> void Write(int index,int &offset,T &ele);
         /*
         static void InitFromEmpty(){
             Openfile();
@@ -1041,37 +1113,56 @@ template<typename key_t>
         }*/
     };
     template <> template<>
-    void BplusTree<String>::Read<String>(FILE *fp,String &ele){
+    void BplusTree<String>::Read<String>(int index,int &offset,String &ele){
         if(ele.value)
             delete ele.value;
         ele.size = meta.keySize - sizeof(size_t);
         ele.value = new char[ele.size];
-        fread(ele.value,sizeof(char)*ele.size,1,fp);
-        fread(&ele.size,sizeof(size_t),1,fp);
+        //fread(ele.value,sizeof(char)*ele.size,1,fp);
+        //fread(&ele.size,sizeof(size_t),1,fp);
+        bm->constReadBuffer(filepath, index, ele.value, offset, sizeof(char)*ele.size);
+        offset += sizeof(char)*ele.size;
+        bm->constReadBuffer(filepath, index, &ele.size, offset, sizeof(size_t));
+        offset += sizeof(size_t);
+        if(ele.size!=meta.keySize - sizeof(size_t))
+            ele.size = meta.keySize - sizeof(size_t);
     }
     template<> template<>
-    void BplusTree<String>::Write<String>(FILE *fp,String &ele){
+    void BplusTree<String>::Write<String>(int index,int &offset,String &ele){
         ele.size = meta.keySize - sizeof(size_t);
-        if(ele.value)
-            fwrite(ele.value,sizeof(char)*ele.size,1,fp);
-        else fseek(fp, sizeof(char)*ele.size, SEEK_CUR);
-        fwrite(&ele.size,sizeof(size_t),1,fp);
+        if(ele.value){
+            //fwrite(ele.value,sizeof(char)*ele.size,1,fp);
+            bm->writeBuffer(filepath, index, ele.value, offset, sizeof(char)*ele.size);
+        }
+        offset += sizeof(char)*ele.size;
+        //else fseek(fp, sizeof(char)*ele.size, SEEK_CUR);
+        //fwrite(&ele.size,sizeof(size_t),1,fp);
+        bm->writeBuffer(filepath, index, &ele.size, offset, sizeof(size_t));
+        offset += sizeof(size_t);
     }
     template<> template<>
-    void BplusTree<Integer>::Write<Integer>(FILE *fp,Integer &ele){
-        fwrite(&ele.value,sizeof(Integer), 1, fp);
+    void BplusTree<Integer>::Write<Integer>(int index,int &offset,Integer &ele){
+        //fwrite(&ele.value,sizeof(Integer), 1, fp);
+        bm->writeBuffer(filepath, index, &ele.value, offset, sizeof(Integer));
+        offset += sizeof(Integer);
     }
     template<> template<>
-    void BplusTree<Integer>::Read<Integer>(FILE *fp,Integer &ele){
-        fread(&ele.value,sizeof(Integer),1,fp);
+    void BplusTree<Integer>::Read<Integer>(int index,int &offset,Integer &ele){
+        //fread(&ele.value,sizeof(Integer),1,fp);
+        bm->constReadBuffer(filepath, index, &ele.value, offset, sizeof(Integer));
+        offset += sizeof(Integer);
     }
     template<> template<>
-    void BplusTree<Float>::Read<Float>(FILE *fp,Float &ele){
-        fread(&ele.value,sizeof(Float),1,fp);
+    void BplusTree<Float>::Read<Float>(int index,int &offset,Float &ele){
+        //fread(&ele.value,sizeof(Float),1,fp);
+        bm->constReadBuffer(filepath, index, &(ele.value), offset, sizeof(Float));
+        offset += sizeof(Float);
     }
     template<> template<>
-    void BplusTree<Float>::Write(FILE *fp,Float &ele){
-        fwrite(&ele.value,sizeof(Float),1,fp);
+    void BplusTree<Float>::Write(int index,int &offset,Float &ele){
+        //fwrite(&ele.value,sizeof(Float),1,fp);
+        bm->constReadBuffer(filepath, index, &ele.value, offset, sizeof(Float));
+        offset += sizeof(Float);
     }
 }
 

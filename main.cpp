@@ -9,53 +9,53 @@
 #include "CatalogManager.h"
 #include "Interpreter.h"
 #include "IndexManager.h"
+#include "BufferManager.hpp"
 #include "sqlstruct.h"
 using namespace std;
-void nextChar(char *str){
-    for(int i = 0;i<31;i++)
-        if(str[i]<'z'){
-            str[i]++;
-            break;
-        }
-}
-//int String::times = 0;
-//int String::create = 0;
-int main(){
-    IndexManager im;
-    im.InitFromEmpty();
-    off_t pos;
-    pos = im.newIndex(sqlstruct::CHAR + 32);
-    //pos = im.newIndex(sqlstruct::FLOATNUM);
-    char str[32];
-    for(int i = 0;i<31;i++)
-        str[i] = 'a';
-    str[31] = '\0';
-    for(int i = 0;i<300;i++){
-        nextChar(str);
-        im.InsertKey(pos, str, i);
+BufferManager bm = BufferManager();
+char str[10] = "aaaaaaaaa";
+void nextstr(){
+    for(int i = 0;i<8;i++)
+    if(str[i]<'z')
+    {
+        str[i]++;
+        return ;
     }
-    //im.DeleteKey(pos, );
-    //im.DeleteKey(pos, 21);
-    //cout << im.SearchKey(pos, 103)<< endl;
-    //for(int i = 30;i<50;i++)
-      //  im.DeleteKey(pos, i*1.0f);
-    for(int i = 0;i<31;i++)
-        str[i] = 'a';
-    str[31] = '\0';
+}
+
+int main(){
+    CatalogManager cm;
+    cm.InitFromEmpty();
+    //cm.Select();
+    IndexManager im;
+    im.SetBuffer(bm);
+    //im.InitFromEmpty();
+    im.InitFromFile();
+    /*
+    off_t pos = im.newIndex(sqlstruct::INTNUM);
     for(int i = 0;i<300;i++){
-        nextChar(str);
+        im.InsertKey(pos, i, i);
+    }
+    for(int i = 20;i<30;i++)
+    im.DeleteKey(pos, i);
+    for(int i = 0;i<300;i++){
+        if(im.SearchKey(pos, i) == -1)
+            cout << i << endl;
+    }*/
+    //off_t pos = im.newIndex(sqlstruct::CHAR + 10);
+    /*
+    for(int i = 0;i<300;i++){
+        im.InsertKey(pos, str, i);
+        nextstr();
+    }*/
+    off_t pos = 10008;
+    strcpy(str, "aaaaaaaaa");
+    for(int i = 0;i<300;i++){
         if(im.SearchKey(pos, str) == -1)
             cout << i << endl;
     }
-    //CatalogManager cm;
-    //cm.InitFromFile();
-    //cm.Test();
-    //cm.GetTableSchema(50000);
-    //cm.InitFromEmpty();
-    //cm.Select();
+    //cout << im.SearchKey(pos, "aasdfasdf") << endl;
     //Interpreter it(std::cin,std::cout,&cm);
-    //it.Test();
-    //Interpreter it;
     //it.run();
 }
 

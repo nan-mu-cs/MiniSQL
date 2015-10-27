@@ -9,6 +9,7 @@
 #ifndef ____IndexManager__
 #define ____IndexManager__
 #include "sqlstruct.h"
+#include "BufferManager.hpp"
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
@@ -99,6 +100,9 @@ struct String{
         //std::cout << "enter operator=" << std::endl;
         size = a.size;
         if(this!=&a){
+            //if(strlen(a.value) == 0){
+              //  return *this;
+            //}
             if(value)
                 delete value;
             value = new char [a.size];
@@ -168,5 +172,7 @@ public:
     off_t SearchKey(off_t pos,float key);
     /*search char key*/
     off_t SearchKey(off_t pos,char *key);
+    void SetBuffer(BufferManager &buffer);
+    ~IndexManager();
 };
 #endif /* defined(____IndexManager__) */
