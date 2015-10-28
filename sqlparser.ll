@@ -84,7 +84,7 @@ WHERE	{return yy::sqlparser::make_WHERE(loc);}
 
 "&&"	{return yy::sqlparser::make_ANDOP(loc);}
 "||"	{return yy::sqlparser::make_OR(loc);}
-"=="|"="	{return yy::sqlparser::make_COMPARISON(sqlstruct::OR,loc);}
+"=="|"="	{return yy::sqlparser::make_COMPARISON(sqlstruct::EQUAL,loc);}
 "<=>"	{return yy::sqlparser::make_COMPARISON(sqlstruct::EQUAL,loc);}
 ">="	{return yy::sqlparser::make_COMPARISON(sqlstruct::GREATOREQUAL,loc);}
 ">"	{return yy::sqlparser::make_COMPARISON(sqlstruct::GREAT,loc);}

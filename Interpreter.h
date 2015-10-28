@@ -34,6 +34,7 @@ public:
         this->cm = cm;
         rm = NULL;
     }
+    off_t pos;
     RecordManager *rm;
     void Createtable(sqlstruct::createtable &node);
     void DropTable(std::string table);//done

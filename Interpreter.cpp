@@ -99,6 +99,7 @@ void Interpreter::Createtable(sqlstruct::createtable &node){
         return ;
     }
     cm->addTable(node.name, strexec);
+    this->pos = rm->CreateTable(node.col.record);
 }
 
 void Interpreter::DropTable(std::string table){
@@ -174,16 +175,18 @@ void Interpreter::InsertValues(sqlstruct::insertvalues node){
     }
     for(int i = 0;i<node.item.size();i++){
         if(node.item[i].data_type == sqlstruct::STRING&&table.col.record[i].data_type>CHARBASE){
-            if(node.item[i].value.length()>table.col.record[i].data_type - CHARBASE){
+            if(node.item[i].value.length()>table.col.record[i].data_type - sqlstruct::CHAR + 1){
                 out << "Error : string out of length" << '(' << node.item[i].value <<')' << endl;
                 return ;
             }
+            node.item[i].data_type = table.col.record[i].data_type;
         }
         else if(node.item[i].data_type!=table.col.record[i].data_type){
             out << "Error: Data type does not match" << '(' << node.item[i].value <<')'<<endl;
             return ;
         }
     }
+    rm->InsertRecord(this->pos, node.item);
 }
 
 void Interpreter::Select(sqlstruct::selecttable node){
@@ -209,10 +212,12 @@ void Interpreter::Select(sqlstruct::selecttable node){
             }
         }
     }
+    //evalASTree(node.where);
     if(!CheckWhere(table, node.where)){
         out << "Error: Where Clause is invalid" << endl;
         return ;
     }
+    rm->Search(this->pos, table.col.record, node.where);
 }
 
 void Interpreter::Delete(sqlstruct::deletetable node){
@@ -226,6 +231,7 @@ void Interpreter::Delete(sqlstruct::deletetable node){
         out << "Error: Where Clause is invalid" << endl;
         return ;
     }
+    rm->DeleteRecord(this->pos, table.col.record, node.where);
 }
 
 void Exit(){

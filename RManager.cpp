@@ -52,7 +52,7 @@ off_t RecordManager::AllocRecord(size_t size){
     size_t used = 0;
     off_t sign = -1;
     if(meta.firstblock == -1){
-        meta.endblock = meta.firstblock = -1;
+        meta.endblock = meta.firstblock = RECORD_START_BLOCK;
         flag = true;
     }
     if(flag||used + size > BLOCKSIZE){
@@ -148,7 +148,7 @@ off_t RecordManager::InsertRecord(off_t tablepos, std::vector<sqlstruct::inserti
     meta.head = pos;
     bm->writeBuffer(filepath, index, &next, offset, sizeof(off_t));
     offset += sizeof(off_t);
-    
+    unmap(tablepos);
     unmap(pos, item);
     /*
     for(int i = 0;i<item.size();i++){
@@ -192,7 +192,7 @@ void RecordManager::unmap(off_t pos,std::vector<sqlstruct::insertitem> &record){
             size_t size = record[i].data_type - sqlstruct::CHAR +1;
             char *str = new char [size];
             strcpy(str, record[i].value.c_str());
-            bm->writeBuffer(filepath, index, &str,
+            bm->writeBuffer(filepath, index, str,
                             offset, sizeof(char)*size);
             offset += sizeof(char)*size;
             delete str;
@@ -225,7 +225,7 @@ void RecordManager::map(off_t pos,std::vector<sqlstruct::record_t> table,std::ve
         else {
             size_t size = table[i].data_type - sqlstruct::CHAR + 1;
             char *str = new char [size];
-            bm->constReadBuffer(filepath, index, &str, offset, sizeof(char)*size);
+            bm->constReadBuffer(filepath, index, str, offset, sizeof(char)*size);
             offset += sizeof(char)*size;
             ss.str("");
             ss << str;
@@ -315,7 +315,23 @@ bool RecordManager::evalAST(vector<string> record,sqlstruct::astree *root,std::v
                 case sqlstruct::GREAT:
                 case sqlstruct::GREATOREQUAL:
                 case sqlstruct::NOTEQUAL:
-                        return evalExpr(&(root->left->value), root->operate,&(root->right->value));
+                    {
+                        sqlstruct::ele_t v1,v2;
+                        if(root->left->value.type == sqlstruct::VARIABLE)
+                        {
+                            int i = atoi(root->left->value.value.c_str());
+                            v1.value = record[i];
+                            v1.type = table[i].data_type;
+                        }
+                        else v1 = root->left->value;
+                        if(root->right->value.type == sqlstruct::VARIABLE){
+                            int i = atoi(root->right->value.value.c_str());
+                            v2.value = record[i];
+                            v2.type = table[i].data_type;
+                        }
+                        else v2 = root->right->value;
+                        return evalExpr(&(v1), root->operate,&(v2));
+                    }
                 default:
                     return true;
             }
@@ -332,6 +348,7 @@ vector<vector<string>> RecordManager::Search(off_t tablepos,vector<sqlstruct::re
     while(next!=-1){
         int index = next / BLOCKREMAINDER;
         int offset = next % BLOCKREMAINDER;
+        off_t tmp = next;
         bm->constReadBuffer(filepath, index, &del, offset, sizeof(short));
         offset += sizeof(short);
         bm->constReadBuffer(filepath, index, &next, offset, sizeof(off_t));
@@ -339,7 +356,7 @@ vector<vector<string>> RecordManager::Search(off_t tablepos,vector<sqlstruct::re
         if(del == 1)
             continue;
         vector<string> record;
-        map(index*BLOCKREMAINDER + offset, table, record);
+        map(tmp, table, record);
         if(evalAST(record, root, table))
             result.push_back(record);
     }
@@ -362,7 +379,7 @@ size_t RecordManager::DeleteRecord(off_t tablepos,vector<sqlstruct::record_t> ta
         if(del == 1)
             continue;
         vector<string> record;
-        map(index*BLOCKREMAINDER + offset, table, record);
+        map(tmp, table, record);
         if(evalAST(record, root, table))
         {
             result++;

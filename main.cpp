@@ -27,7 +27,8 @@ void nextstr(){
 int main(){
     CatalogManager cm;
     cm.SetBuffer(bm);
-    cm.InitFromFile();
+    cm.InitFromEmpty();
+    //cm.InitFromFile();
     RecordManager rm;
     rm.SetBuffer(bm);
     rm.InitFromEmpty();

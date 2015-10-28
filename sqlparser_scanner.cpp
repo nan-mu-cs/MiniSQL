@@ -1403,7 +1403,7 @@ YY_RULE_SETUP
 case 54:
 YY_RULE_SETUP
 #line 87 "sqlparser.ll"
-{return yy::sqlparser::make_COMPARISON(sqlstruct::OR,loc);}
+{return yy::sqlparser::make_COMPARISON(sqlstruct::EQUAL,loc);}
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
