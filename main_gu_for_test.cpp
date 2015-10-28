@@ -22,16 +22,16 @@ struct record{
 int main(int argc, const char * argv[]) {
     
     RecordManager rm;
-    string fname = "/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile";
-    rm.createTableFile("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile");
+    string fname = "/Users/andyyang/Documents/MiniSQL/MiniSQL/table.txt";
+    rm.createTableFile(fname);
     
     struct record r;
     r.i = 111;
 //    strcpy(r.c, "hello");
     r.f = 3.14159;
-    rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
+    rm.insertRecords(fname, &r, sizeof(r));
     r.i = 112;
-    rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
+    rm.insertRecords(fname, &r, sizeof(r));
 
 //    charNValue c(sizeof("hello"), "hello");
     floatValue f(98.7);
@@ -45,11 +45,11 @@ int main(int argc, const char * argv[]) {
     int k;
     for (k = 0; k < 300; k++) {
         r.i = 113;
-        rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
+        rm.insertRecords(fname, &r, sizeof(r));
     }
     
-    vector<recordPointer> vr = rm.select("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", k + 2, 26, conditions);
-    rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", vr);
+    vector<recordPointer> vr = rm.select(fname, k + 2, 26, conditions);
+    rm.deleteRecords(fname, vr);
     
     
     unsigned int recordCount;

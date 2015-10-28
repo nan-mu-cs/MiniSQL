@@ -62,7 +62,7 @@ int RecordManager::insertRecords(string tableName, void* recordContent, int size
     //set the new empty list head
     bm.constReadBuffer(tableName, current.blockNum, &tempDeleteBit, current.offset+deleteBitOffset, sizeof(short));
     
-    if (tempDeleteBit) {
+    if (tempDeleteBit){
         bm.constReadBuffer(tableName, current.blockNum, &emptyListHead, current.offset+nextOffset, sizeof(recordPointer));
     }else {
         //current node is the first node of the empty list.

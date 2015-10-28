@@ -740,19 +740,19 @@ namespace yy {
             {
   case 6:
 #line 126 "sqlparser.yy" // lalr1.cc:859
-    {yylhs.value.as< sqlstruct::astree* > () = driver.newLeafNode(yystack_[0].value.as< std::string > ()); }
+    { sqlstruct::ele_t ele; ele.value = yystack_[0].value.as< std::string > ();ele.type = sqlstruct::VARIABLE;yylhs.value.as< sqlstruct::astree* > () = driver.newLeafNode(ele); }
 #line 745 "sqlparser.cpp" // lalr1.cc:859
     break;
 
   case 7:
 #line 127 "sqlparser.yy" // lalr1.cc:859
-    {yylhs.value.as< sqlstruct::astree* > () = driver.newLeafNode(itostr(yystack_[0].value.as< int > ()));}
+    {sqlstruct::ele_t ele;ele.value = itostr(yystack_[0].value.as< int > ()); ele.type = sqlstruct::INTNUM;yylhs.value.as< sqlstruct::astree* > () = driver.newLeafNode(ele);}
 #line 751 "sqlparser.cpp" // lalr1.cc:859
     break;
 
   case 8:
 #line 128 "sqlparser.yy" // lalr1.cc:859
-    {yylhs.value.as< sqlstruct::astree* > () = driver.newLeafNode(ftostr(yystack_[0].value.as< float > ()));}
+    {sqlstruct::ele_t ele;ele.value = ftostr(yystack_[0].value.as< float > ());ele.type = sqlstruct::FLOATNUM;yylhs.value.as< sqlstruct::astree* > () = driver.newLeafNode(ele);}
 #line 757 "sqlparser.cpp" // lalr1.cc:859
     break;
 
@@ -764,7 +764,7 @@ namespace yy {
 
   case 10:
 #line 130 "sqlparser.yy" // lalr1.cc:859
-    {std::cout << "In and"<< std::endl;yylhs.value.as< sqlstruct::astree* > () = driver.newInternalNode(yystack_[2].value.as< sqlstruct::astree* > (),sqlstruct::AND,yystack_[0].value.as< sqlstruct::astree* > ());}
+    {yylhs.value.as< sqlstruct::astree* > () = driver.newInternalNode(yystack_[2].value.as< sqlstruct::astree* > (),sqlstruct::AND,yystack_[0].value.as< sqlstruct::astree* > ());}
 #line 769 "sqlparser.cpp" // lalr1.cc:859
     break;
 

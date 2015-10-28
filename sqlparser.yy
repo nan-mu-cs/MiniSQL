@@ -123,11 +123,11 @@ stmt_list: stmt ";"
 	| error ";"
 	| stmt_list error ";"
 
-expr: NAME {$$ = driver.newLeafNode($1); }
-	| intexp {$$ = driver.newLeafNode(itostr($1));}
-	| floatexp {$$ = driver.newLeafNode(ftostr($1));}
+expr: NAME { sqlstruct::ele_t ele; ele.value = $1;ele.type = sqlstruct::VARIABLE;$$ = driver.newLeafNode(ele); }
+	| intexp {sqlstruct::ele_t ele;ele.value = itostr($1); ele.type = sqlstruct::INTNUM;$$ = driver.newLeafNode(ele);}
+	| floatexp {sqlstruct::ele_t ele;ele.value = ftostr($1);ele.type = sqlstruct::FLOATNUM;$$ = driver.newLeafNode(ele);}
 	| "(" expr ")" {$$ = $2;}
-	| expr ANDOP expr {std::cout << "In and"<< std::endl;$$ = driver.newInternalNode($1,sqlstruct::AND,$3);}
+	| expr ANDOP expr {$$ = driver.newInternalNode($1,sqlstruct::AND,$3);}
 	| expr OR expr {$$ = driver.newInternalNode($1,sqlstruct::OR,$3);}
 	| NOT expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}
 	| "!" expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}

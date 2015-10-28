@@ -40,9 +40,14 @@ namespace sqlstruct{
 		std::string tablename;
 		std::vector<insertitem> item;
 	};
+    struct ele_t{
+        int type;
+        std::string value;
+    };
 	struct astree{
-		std::string value;
-		bool isleaf;
+		//std::string value;
+        ele_t value;
+        bool isleaf;
 		int operate;
 		struct astree *left,*right;
 	};
@@ -65,6 +70,7 @@ namespace sqlstruct{
     const int INTNUM  = 40000;
     const int CHAR = 120000;
     const int FLOATNUM = 90000;
+    const int VARIABLE = 50000;
 	enum attr_type{
 		AUTO_INCREMENT,
 		DEFAULT,

@@ -11,6 +11,7 @@
 #include "IndexManager.h"
 #include "BufferManager.hpp"
 #include "sqlstruct.h"
+#include "RManager.h"
 using namespace std;
 BufferManager bm = BufferManager();
 char str[10] = "aaaaaaaaa";
@@ -22,11 +23,17 @@ void nextstr(){
         return ;
     }
 }
-
+//string RecordManager::filepath = "/Users/andyyang/Documents/MiniSQL/MiniSQL/table.txt";
 int main(){
     CatalogManager cm;
     cm.SetBuffer(bm);
     cm.InitFromFile();
+    RecordManager rm;
+    rm.SetBuffer(bm);
+    rm.InitFromEmpty();
+    Interpreter it(std::cin,std::cout,&cm);
+    it.rm = &rm;
+    it.run();
     //cm.InitFromEmpty();
     //cm.Select();
     //IndexManager im;
@@ -58,8 +65,6 @@ int main(){
             cout << i << endl;
     }*/
     //cout << im.SearchKey(pos, "aasdfasdf") << endl;
-    Interpreter it(std::cin,std::cout,&cm);
-    it.run();
 }
 
 /*

@@ -9,11 +9,13 @@
 #include "Interpreter.h"
 #include <sys/stat.h>
 #include <fstream>
+#include <sstream>
 #define CHARBASE 120000
 using std::istream;
 using std::string;
 using std::endl;
 using std::ifstream;
+using std::stringstream;
 void Interpreter::run(){
     FILE *stream;
     string tmp,used,left;
@@ -207,6 +209,10 @@ void Interpreter::Select(sqlstruct::selecttable node){
             }
         }
     }
+    if(!CheckWhere(table, node.where)){
+        out << "Error: Where Clause is invalid" << endl;
+        return ;
+    }
 }
 
 void Interpreter::Delete(sqlstruct::deletetable node){
@@ -215,10 +221,37 @@ void Interpreter::Delete(sqlstruct::deletetable node){
         out << "Error: Table " + node.fromtable + " does not exist" << endl;
         return ;
     }
+    sqlstruct::createtable table = cm->GetTableSchema(pos);
+    if(!CheckWhere(table, node.where)){
+        out << "Error: Where Clause is invalid" << endl;
+        return ;
+    }
 }
 
 void Exit(){
     
 }
-
+bool Interpreter::CheckWhere(sqlstruct::createtable table,sqlstruct::astree *root){
+    if(root == NULL)
+        return true;
+    else if(!root->isleaf){
+        if(root->operate == sqlstruct::NOT)
+            return CheckWhere(table, root->left);
+        else return CheckWhere(table, root->left)&&CheckWhere(table, root->right);
+    }
+    else {
+        if(root->value.type == sqlstruct::VARIABLE){
+            int i = 0;
+            for(i = 0;i<table.col.record.size();i++)
+                if(table.col.record[i].name == root->value.value)
+                    break;
+            if(i == table.col.record.size())
+                return false;
+            stringstream ss;
+            ss << i;
+            root->value.value = ss.str();
+        }
+    }
+    return true;
+}
 

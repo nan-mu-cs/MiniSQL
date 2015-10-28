@@ -73,7 +73,7 @@ class sqlparser_driver{
 				std::cout << std::endl;
 			}
 		}
-		sqlstruct::astree * newLeafNode(std::string value){
+		sqlstruct::astree * newLeafNode(sqlstruct::ele_t value){
 			sqlstruct::astree *node = new sqlstruct::astree;
 			node->value = value;
 			node->left = node->right = NULL;
@@ -104,7 +104,7 @@ class sqlparser_driver{
 			if(root == NULL)
 				return ;
 			if(root->isleaf){
-				std::cout << root->value << ' ';
+				//std::cout << root->value << ' ';
 				return ;
 			}
 			if(root->operate == sqlstruct::NOT||root->operate == sqlstruct::ISNULL){
