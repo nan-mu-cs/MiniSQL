@@ -6,56 +6,65 @@
 //  Copyright © 2015 laoreja. All rights reserved.
 //
 
+#include <iostream>
 #include "BufferManager.hpp"
 #include "BlockForBuffer.hpp"
 #include "RecordManager.hpp"
 
+
 //for test
 BufferManager bm = BufferManager();
 
-struct record{
-    int i;
-    char c[10];
-    float f;
-};
+
 
 int main(int argc, const char * argv[]) {
     
     RecordManager rm;
     string fname = "/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile";
     rm.createTableFile("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile");
+    int recordContentSize = sizeof(int)+sizeof(float)+10;
     
-    struct record r;
-    r.i = 111;
-    strcpy(r.c, "nihao");
-    r.f = 3.14159;
-    rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
-    r.i = 112;
-    rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
+    vector<insertitem> r;
+    
+    r.push_back(insertitem("111", INTNUM));
+    r.push_back(insertitem("nihao", CHAR+10));
+    r.push_back(insertitem("3.14159", FLOATNUM));
+    recordPointer rp1 = rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", r, sizeof(int)+sizeof(float)+10);
+    printf("rp1, %d : %u\n", rp1.blockNum, rp1.offset);
+    
+    r.clear();
+    r.push_back(insertitem("112", INTNUM));
+    r.push_back(insertitem("nihao", CHAR+10));
+    r.push_back(insertitem("3.14159", FLOATNUM));
+    recordPointer rp2 = rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", r, sizeof(int)+sizeof(float)+10);
+    printf("rp2, %d : %u\n", rp2.blockNum, rp2.offset);
+    
+    condition con1(14, EQUAL, insertitem("98.7", FLOATNUM));
+    condition con2(0, LESSOREQUAL, insertitem("111", INTNUM));
+    condition con3(4, EQUAL, insertitem("hello", CHAR + 10));
+    vector<condition> conditions{con2};
 
-    string s = "hello";
-    char ccc[10];
-    strcpy(ccc, s.c_str());
-    charNValue c(sizeof(ccc), ccc);
-    
-    floatValue f(98.7);
-    intValue i(112);
-    condition con1(16, FLOAT, EQUAL, f);
-    condition con2(0, INT, LESSOREQUAL, i);
-    
-    condition con3(4, CHARN, EQUAL, c);
-    vector<condition> conditions{con1, con2, con3};
-
-    r.f = 98.7;
     int k;
-    for (k = 0; k < 2; k++) {
-        r.i = k;
-        strcpy(r.c, "hello");
-        rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
+    for (k = 0; k < 300; k++) {
+        r.clear();
+        r.push_back(insertitem(to_string(k), INTNUM));
+        r.push_back(insertitem("hello", CHAR+10));
+        r.push_back(insertitem("98.7", FLOATNUM));
+        rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", r, sizeof(int)+sizeof(float)+10);
     }
     
-    vector<recordPointer> vr = rm.select("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", 38, conditions);
-    rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", vr);
+    vector<int> attrType = {INTNUM, CHAR+10, FLOATNUM};
+    vector<vector<string> > selectRes = rm.selectRecords(fname, sizeof(int)+sizeof(float)+10, conditions, attrType);
+    vector<vector<string> >::iterator it;
+    for (it = selectRes.begin(); it != selectRes.end(); it++) {
+        vector<string>::iterator insideIt;
+        for (insideIt = it->begin(); insideIt != it->end(); insideIt++) {
+            cout << *insideIt << " ";
+        }
+        cout << endl;
+    }
+    rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", sizeof(int)+sizeof(float)+10, conditions);
+    
     
     
     unsigned int recordCount;
@@ -64,13 +73,12 @@ int main(int argc, const char * argv[]) {
     
     recordPointer rpStart(0, rm.recordStartPos);
     int tempDeleteBit;
-    int rs = rm.recordPrefixLen+sizeof(struct record);
-    struct record res;
+    int recordSizeInFile = rm.recordPrefixLen+recordContentSize;
     
     if (recordCount > 0) {
         bm.constReadBuffer(fname, rpStart.blockNum, &tempDeleteBit, rpStart.offset+rm.deleteBitOffset, sizeof(short));
         while (tempDeleteBit) {
-            rpStart.offset+=rs;
+            rpStart.offset+=recordSizeInFile;
             if (rpStart.offset >= BUFFERSIZE) {
                 rpStart.offset = 0;
                 rpStart.blockNum += 1;
@@ -80,38 +88,24 @@ int main(int argc, const char * argv[]) {
 
         
         for (int i = 0; i < recordCount; i++) {
-            bm.constReadBuffer(fname, rpStart.blockNum, &res, rpStart.offset+rm.recordPrefixLen, sizeof(struct record));
-            printf("%d %s %f\n", res.i, res.c, res.f);
+            int iv;
+            float fv;
+            char cv[10];
+            
+            bm.constReadBuffer(fname, rpStart.blockNum, &iv, rpStart.offset+rm.recordPrefixLen, sizeof(int));
+            bm.constReadBuffer(fname, rpStart.blockNum, cv, rpStart.offset+rm.recordPrefixLen+sizeof(int), 10);
+            bm.constReadBuffer(fname, rpStart.blockNum, &fv, rpStart.offset+rm.recordPrefixLen+sizeof(int)+10, sizeof(float));
+            printf("%d %s %f\n", iv, cv, fv);
             
             bm.constReadBuffer(fname, rpStart.blockNum, &rpStart, rpStart.offset+rm.nextOffset, sizeof(recordPointer));
         }
     }
-
+    vector<indexPair> ipv = rm.returnIndexInfo(fname, 4, CHAR+10, 18);
+    printf("return index info:\n");
+    for (int i = 0; i < ipv.size(); i++) {
+        printf("%s: %d - %u\n", ipv[i].first.c_str(), ipv[i].second.blockNum, ipv[i].second.offset);
+    }
     
-    
-//    char messContent[100] = {'a', 'b', 'c', 'd', '\n'};
-//    
-//    printf("whole buffer to file, 1 block, %d\n", bm.wholeFileToBuffer("/Users/laoreja/study/DB/MiniSQL/MiniSQL/one_block.txt"));
-//    printf("whole buffer to file, 1+ block, %d\n", bm.wholeFileToBuffer("/Users/laoreja/study/DB/MiniSQL/MiniSQL/one_block_and_more.txt"));
-//    
-//
-//    
-//    char readBuffer[BUFFERSIZE+1];
-//    memcpy(readBuffer, bm.constReadBuffer("/Users/laoreja/study/DB/MiniSQL/MiniSQL/one_block.txt", 0), BUFFERSIZE);
-//    readBuffer[BUFFERSIZE] = '\0';
-//    puts(readBuffer);
-//    
-//    bm.writeBuffer("/Users/laoreja/study/DB/MiniSQL/MiniSQL/one_block.txt", 0, messContent);
-//    bm.bufferToFile("/Users/laoreja/study/DB/MiniSQL/MiniSQL/one_block.txt", 0);
-//    
-//    bm.pinBuffer("/Users/laoreja/study/DB/MiniSQL/MiniSQL/one_block.txt", 0);
-//    
-//    bm.wholeFileToBuffer("/Users/laoreja/study/DB/MiniSQL/MiniSQL/one_block_and_more.txt");
-//    
-//    bm.unPinBuffer(0);
-//    
-//    printf("file to block, return index %d\n", bm.fileToBuffer("/Users/laoreja/study/DB/MiniSQL/MiniSQL/one_block_and_more.txt", 1));
-  
     bm.save();
     return 0;
 }

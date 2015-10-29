@@ -3,7 +3,11 @@
 //#include "sqlparser.hh"
 #include <string>
 #include <vector>
+#include <cstdio>
+#include <cmath>
 //typedef yy::sqlparser::token::tokentype TOKEN;
+using namespace std;
+
 namespace sqlstruct{
 	struct col_attr{
 		int type;
@@ -32,9 +36,102 @@ namespace sqlstruct{
 		std::string indexname;
 		std::vector<std::string> col;
 	};
-	struct insertitem{
+    const int INTNUM  = 40000;
+    const int CHAR = 120000;
+    const int FLOATNUM = 90000;
+    const int VARIABLE = 50000;
+    enum operate {
+        AND,
+        OR,
+        NOT,
+        ISNULL,
+        LESS,
+        LESSOREQUAL,
+        EQUAL,
+        GREATOREQUAL,
+        GREAT,
+        NOTEQUAL
+    };
+	class insertitem{
+    public:
 		std::string value;
 		int data_type;
+        insertitem(){};
+        insertitem(std::string valueInput, int type):value(valueInput), data_type(type) {};
+        int size(){
+            switch (data_type) {
+                case INTNUM:
+                    return sizeof(int);
+                    break;
+                case FLOATNUM:
+                    return sizeof(float);
+                    break;
+                default:
+                    return data_type - CHAR;
+                    break;
+            }
+        }
+        int getInt(){
+            return stoi(value);
+        }
+        float getFloat(){
+            return stof(value);
+        }
+        char* getCharN(){
+            return (char*)value.c_str();
+        }
+        bool operation(operate op, insertitem item2){
+            switch (op) {
+                case EQUAL:
+                    return this->equal(item2);
+                    break;
+                case NOTEQUAL:
+                    return !this->equal(item2);
+                    break;
+                case LESS:
+                    return this->lessThan(item2);
+                    break;
+                case GREATOREQUAL:
+                    return !this->lessThan(item2);
+                    break;
+                case GREAT:
+                    return item2.lessThan(*this);
+                    break;
+                case LESSOREQUAL:
+                    return !item2.lessThan(*this);
+                default:
+                    fprintf(stderr, "unknown operator!\n");
+                    return false;
+                    break;
+            }
+        }
+        bool equal(insertitem item2){
+            if (data_type != item2.data_type) {
+                return false;
+            }
+            if (data_type != FLOATNUM) {
+                return value == item2.value;
+            }else{
+                return abs(getFloat() - item2.getFloat()) < 0.00001;
+            }
+            
+        }
+        bool lessThan(insertitem item2){
+            if (data_type != item2.data_type) {
+                return false;
+            }
+            switch (data_type) {
+                case INTNUM:
+                    return getInt() < item2.getInt();
+                    break;
+                case FLOATNUM:
+                    return getFloat() < item2.getFloat();
+                    break;
+                default:
+                    return value < item2.value;
+                    break;
+            }
+        }
 	};
 	struct insertvalues{
 		std::string tablename;
@@ -67,10 +164,7 @@ namespace sqlstruct{
 		std::string tablename;
 		std::vector<std::string> col;
 	};
-    const int INTNUM  = 40000;
-    const int CHAR = 120000;
-    const int FLOATNUM = 90000;
-    const int VARIABLE = 50000;
+
 	enum attr_type{
 		AUTO_INCREMENT,
 		DEFAULT,
@@ -79,17 +173,6 @@ namespace sqlstruct{
 		UNIQUE,
 		STRING,
 	};
-	enum operate {
-		AND,
-		OR,
-		NOT,
-		ISNULL,
-		LESS,
-		LESSOREQUAL,
-		EQUAL,
-		GREATOREQUAL,
-		GREAT,
-		NOTEQUAL
-	};
+
 }
 #endif

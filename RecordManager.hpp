@@ -14,9 +14,12 @@
 #include <vector>
 
 #include "BufferManager.hpp"
-#include "SelectValue.hpp"
+#include "sqlstruct.h"
+//#include "SelectValue.hpp"
 
 using namespace std;
+using namespace sqlstruct;
+
 extern BufferManager bm;
 
 class recordPointer{
@@ -30,20 +33,19 @@ public:
     }
 };
 
-
 class condition{
 public:
     int attr_startPos;
-    valueType type;
-    SelectOp op;
-    selectValue value;
-    condition(int aPos, valueType typeInput, SelectOp o, selectValue v){
+    operate op;
+    insertitem value;
+    condition(int aPos, operate o, insertitem v){
         attr_startPos = aPos;
-        type = typeInput;
         op = o;
         value = v;
     }
 };
+
+typedef pair<string, recordPointer> indexPair;
 
 
 //each record structure: (双向链表）
@@ -55,10 +57,8 @@ class RecordManager{
 public: //this public modifier is for debug only, change back to private later!
     const int RCPos = 0;
     const int ELHeadPos = sizeof(unsigned int);
-
     const int recordStartPos = ELHeadPos + sizeof(recordPointer);
 
-    
     const int recordPrefixLen = (sizeof(recordPointer) << 1) + sizeof(short);
     const int nextOffset = 0;
     const int lastOffset = sizeof(recordPointer);
@@ -66,14 +66,18 @@ public: //this public modifier is for debug only, change back to private later!
     
 public:
     void createTableFile(string tableName);
-    
     void deleteTableFile(string tableName);
     
-    int insertRecords(string tableName, void* recordContent, int size);
+    vector<indexPair> returnIndexInfo(string tableName, int attr_pos, int attrType, int recordContentSize);
     
-    vector<recordPointer> select(string tableName, int recordSizeInFile, vector<condition> conditions);
+    recordPointer insertRecords(string tableName, vector<insertitem>& recordContent, int recordSize);
     
-    int deleteRecords(string tableName, vector<recordPointer> deleteList);
+    vector<vector<string> > selectRecords(string tablename, int recordSize, vector<condition>& conditions, vector<int>& attrTypes);
+    
+    int deleteRecords(string tableName, int recordSize, vector<condition>& conditions);
+    
+    // after passing tests, set to private
+    vector<recordPointer> select(string tableName, int recordSize, vector<condition>& conditions);
 };
 
 
