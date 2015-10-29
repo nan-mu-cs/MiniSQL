@@ -199,7 +199,7 @@ recordPointer RecordManager::insertRecords(string tableName, vector<insertitem>&
             default:
             {
                 char* cNValue = new char[valueSize];
-                recordContent[i].getCharN(cNValue);
+                strcpy(cNValue, recordContent[i].getCharN());
                 bm.writeBuffer(tableName, current.blockNum, cNValue, current.offset+tempPos, valueSize);
                 delete[] cNValue;
                 break;
@@ -220,14 +220,15 @@ recordPointer RecordManager::insertRecords(string tableName, vector<insertitem>&
 }
 
 
-int RecordManager::deleteRecords(string tableName, int recordSize, vector<condition>& conditions){
+vector<string> RecordManager::deleteRecords(string tableName, int recordSize, vector<condition>& conditions, int attrPos, int attrType){
     recordPointer next;
     recordPointer last;
     recordPointer ELHead;
     unsigned int recordCount;
     short deleteBit = 1;
+    vector<string> res;
     
-    vector<recordPointer> deleteList = select(tableName, recordSize, conditions);
+    vector<recordPointer> deleteList = select(tableName, recordSize, conditions, true, attrPos, attrType, res);
     
     bm.constReadBuffer(tableName, 0, &recordCount, RCPos, sizeof(unsigned int));
     
@@ -249,11 +250,11 @@ int RecordManager::deleteRecords(string tableName, int recordSize, vector<condit
     }
     
     bm.writeBuffer(tableName, 0, &recordCount, RCPos, sizeof(unsigned int));
-    return 0;
+    return res;
 }
 
 
-vector<recordPointer> RecordManager::select(string tableName, int recordSize, vector<condition>& conditions){
+vector<recordPointer> RecordManager::select(string tableName, int recordSize, vector<condition>& conditions, bool returnDeleteKey, int attrPos, int attrType, vector<string>& deleteKeys){
     vector<recordPointer> res;
     recordSize += recordPrefixLen;
     
@@ -302,14 +303,40 @@ vector<recordPointer> RecordManager::select(string tableName, int recordSize, ve
                 break;
             }
         }
+
         if (tmpValue.operation(conditions[i].op, conditions[i].value)) {
             res.push_back(tmp);
+            if (returnDeleteKey) {
+                switch (attrType) {
+                    case INTNUM:
+                    {
+                        int tmpIntForDeleteKey;
+                        bm.constReadBuffer(tableName, tmp.blockNum, &tmpIntForDeleteKey, tmp.offset+recordPrefixLen+attrPos, sizeof(int));
+                        deleteKeys.push_back(to_string(tmpIntForDeleteKey));
+                        break;
+                    }
+                    case FLOATNUM:{
+                        float tmpFloatForDeleteKey;
+                        bm.constReadBuffer(tableName, tmp.blockNum, &tmpFloatForDeleteKey, tmp.offset+recordPrefixLen+attrPos, sizeof(float));
+                        deleteKeys.push_back(to_string(tmpFloatForDeleteKey));
+                        break;
+                    }
+                    default:
+                    {
+                        char* tmpCharNForDeleteKey = new char[attrType - CHAR];
+                        bm.constReadBuffer(tableName, tmp.blockNum, tmpCharNForDeleteKey, tmp.offset+recordPrefixLen+attrPos, attrType-CHAR);
+                        deleteKeys.push_back(string(tmpCharNForDeleteKey));
+                        break;
+                    }
+                }
+            }
         }
         bm.constReadBuffer(tableName, tmp.blockNum, &tmp, tmp.offset+nextOffset, sizeof(recordPointer));
     }
     
     for (i = 1; i < conditions.size(); i++) {
         vector<recordPointer>::iterator it = res.begin();
+        vector<string>::iterator deleteKeysIt = deleteKeys.begin();
         int originalSize = (int)res.size();
         
         for (int k = 0; k < originalSize; k++) {
@@ -342,8 +369,15 @@ vector<recordPointer> RecordManager::select(string tableName, int recordSize, ve
             }
             if (!tmpValue.operation(conditions[i].op, conditions[i].value)) {
                 it = res.erase(it);
+                if (returnDeleteKey) {
+                    deleteKeysIt = deleteKeys.erase(deleteKeysIt);
+                }
+                
             }else{
                 it++;
+                if (returnDeleteKey) {
+                    deleteKeysIt++;
+                }
             }
         }
     }
@@ -352,7 +386,8 @@ vector<recordPointer> RecordManager::select(string tableName, int recordSize, ve
 
 vector<vector<string> > RecordManager::selectRecords(string tablename, int recordSize, vector<condition>& conditions, vector<int>& attrTypes){
     vector<vector<string> > res;
-    vector<recordPointer> resPointers = select(tablename, recordSize, conditions);
+    vector<string> nouse;
+    vector<recordPointer> resPointers = select(tablename, recordSize, conditions, false, 0, 0, nouse);
     for (int i = 0; i < resPointers.size(); i++) {
         vector<string> lineRes;
         int tempPos = recordPrefixLen;

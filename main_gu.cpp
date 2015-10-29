@@ -16,7 +16,6 @@
 BufferManager bm = BufferManager();
 
 
-
 int main(int argc, const char * argv[]) {
     
     RecordManager rm;
@@ -53,6 +52,7 @@ int main(int argc, const char * argv[]) {
         rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", r, sizeof(int)+sizeof(float)+10);
     }
     
+    cout << "select results:" << endl;
     vector<int> attrType = {INTNUM, CHAR+10, FLOATNUM};
     vector<vector<string> > selectRes = rm.selectRecords(fname, sizeof(int)+sizeof(float)+10, conditions, attrType);
     vector<vector<string> >::iterator it;
@@ -63,7 +63,12 @@ int main(int argc, const char * argv[]) {
         }
         cout << endl;
     }
-    rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", sizeof(int)+sizeof(float)+10, conditions);
+    
+    cout << "delete keys: "<< endl;
+    vector<string> deleteKeys = rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", sizeof(int)+sizeof(float)+10, conditions, 4, CHAR+10);
+    for (int i = 0; i < deleteKeys.size(); i++) {
+        cout << deleteKeys[i] << endl;
+    }
     
     
     
@@ -75,6 +80,7 @@ int main(int argc, const char * argv[]) {
     int tempDeleteBit;
     int recordSizeInFile = rm.recordPrefixLen+recordContentSize;
     
+    cout << "remaining records:" << endl;
     if (recordCount > 0) {
         bm.constReadBuffer(fname, rpStart.blockNum, &tempDeleteBit, rpStart.offset+rm.deleteBitOffset, sizeof(short));
         while (tempDeleteBit) {
