@@ -77,9 +77,19 @@ namespace sqlstruct{
         float getFloat(){
             return stof(value);
         }
-        char* getCharN(){
-            return (char*)value.c_str();
+        void getCharN(char* des){
+            strcpy(des, value.c_str());
         }
+        /* wrong version:
+         * char* getCharN(){
+         *      return value.c_str();
+         * }
+         *
+         * when called by rm.insertRecords(..), signal SIGABRT
+         *      malloc: *** error for object: pointer being freed was not allocated *** set a breakpoint in malloc_error_break to debug
+         * and the value in cNValue is correct...
+         */
+        
         bool operation(operate op, insertitem item2){
             switch (op) {
                 case EQUAL:

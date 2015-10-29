@@ -199,9 +199,9 @@ recordPointer RecordManager::insertRecords(string tableName, vector<insertitem>&
             default:
             {
                 char* cNValue = new char[valueSize];
-                cNValue = recordContent[i].getCharN();
+                recordContent[i].getCharN(cNValue);
                 bm.writeBuffer(tableName, current.blockNum, cNValue, current.offset+tempPos, valueSize);
-//                delete[] cNValue;
+                delete[] cNValue;
                 break;
             }
         }
