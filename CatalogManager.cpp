@@ -34,6 +34,17 @@ bool CatalogManager::FindTable(string name,off_t &position){
     }
     return found;
 }
+table_t CatalogManager::FindTable(off_t tablepos){
+    table_t table;
+    map(tablepos, &table);
+    return table;
+}
+
+index_t CatalogManager::FindIndex(off_t indexpos){
+    index_t index;
+    map(indexpos, &index);
+    return index;
+}
 bool CatalogManager::FindIndex(string name, off_t &position){
     map(meta.indexpos,indexhash);
     unsigned int addr = hashFunc(name);

@@ -128,12 +128,12 @@ expr: NAME { sqlstruct::ele_t ele; ele.value = $1;ele.type = sqlstruct::VARIABLE
 	| floatexp {sqlstruct::ele_t ele;ele.value = ftostr($1);ele.type = sqlstruct::FLOATNUM;$$ = driver.newLeafNode(ele);}
 	| "(" expr ")" {$$ = $2;}
 	| expr ANDOP expr {$$ = driver.newInternalNode($1,sqlstruct::AND,$3);}
-	| expr OR expr {$$ = driver.newInternalNode($1,sqlstruct::OR,$3);}
+/*	| expr OR expr {$$ = driver.newInternalNode($1,sqlstruct::OR,$3);}
 	| NOT expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}
-	| "!" expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}
-	| expr COMPARISON expr {$$ = driver.newInternalNode($1,$2,$3);}
+	| "!" expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}*/
+/*	| expr COMPARISON expr {$$ = driver.newInternalNode($1,$2,$3);}
 	| expr IS NULLX {$$ = driver.newInternalNode($1,sqlstruct::ISNULL,NULL);}
-	| expr IS NOT NULLX {$$ = driver.newInternalNode($1,sqlstruct::ISNULL,NULL); $$ = driver.newInternalNode($$,sqlstruct::NOT,NULL);}
+	| expr IS NOT NULLX {$$ = driver.newInternalNode($1,sqlstruct::ISNULL,NULL); $$ = driver.newInternalNode($$,sqlstruct::NOT,NULL);}*/
 	| expr BETWEEN expr AND expr %prec BETWEEN { 
 						    sqlstruct::astree *left,*right;
 						    left = driver.newInternalNode($1,sqlstruct::GREATOREQUAL,$3);

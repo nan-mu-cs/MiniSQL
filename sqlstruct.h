@@ -9,6 +9,22 @@
 using namespace std;
 
 namespace sqlstruct{
+    const int INTNUM  = 40000;
+    const int CHAR = 120000;
+    const int FLOATNUM = 90000;
+    const int VARIABLE = 50000;
+    enum operate {
+        AND,
+        //OR,
+        //NOT,
+        //ISNULL,
+        LESS,
+        LESSOREQUAL,
+        EQUAL,
+        GREATOREQUAL,
+        GREAT,
+        NOTEQUAL
+    };
 	struct col_attr{
 		int type;
 		std::string value;
@@ -17,6 +33,19 @@ namespace sqlstruct{
 		std::string name;
 		std::vector<col_attr>  attr;
 		int  data_type;
+        int size(){
+            switch (data_type) {
+                case INTNUM:
+                    return sizeof(int);
+                    break;
+                case FLOATNUM:
+                    return sizeof(float);
+                    break;
+                default:
+                    return data_type - CHAR;
+                    break;
+            }
+        }
 	};
 	
 	struct create_col_list{
@@ -36,23 +65,7 @@ namespace sqlstruct{
 		std::string indexname;
 		std::vector<std::string> col;
 	};
-    const int INTNUM  = 40000;
-    const int CHAR = 120000;
-    const int FLOATNUM = 90000;
-    const int VARIABLE = 50000;
-    enum operate {
-        AND,
-        OR,
-        NOT,
-        ISNULL,
-        LESS,
-        LESSOREQUAL,
-        EQUAL,
-        GREATOREQUAL,
-        GREAT,
-        NOTEQUAL
-    };
-	class insertitem{
+class insertitem{
     public:
 		std::string value;
 		int data_type;
@@ -173,6 +186,48 @@ namespace sqlstruct{
 		UNIQUE,
 		STRING,
 	};
+
+}
+namespace catalog {
+#define NAME_LENGTH 32
+#define HASH_SIZE 102
+#define MAX_PRIMARY_COL 10
+#define MAXNUM_INDEX 10
+#define MAXNUM_COL 10
+#define MAXNUM_ATTR 3
+#define BLOCKSIZE 4096
+#define BLOCKREMAINDER 10000
+#define BLOCK_HEAD_SIZE 8
+#define STORAGE_START_BLOCK 3
+    struct meta_t{
+        off_t tablepos;
+        off_t indexpos;
+        off_t freeblock;
+        off_t head,end;
+    };
+    struct record_t {
+        std::string name;
+        int datatype;
+        std::string attr[MAXNUM_ATTR];
+    };
+    struct hash_t{
+        std::string name;
+        off_t pos;
+    };
+    struct table_t{
+        //sqlstruct::createtable table;
+        std::string createstr;
+        size_t numofIndex;
+        std::string index[MAXNUM_INDEX];
+        off_t pos;
+    };
+    struct index_t{
+        std::string name;
+        std::string table;
+        size_t numofcol;
+        std::string col[MAXNUM_COL];
+        off_t pos;
+    };
 
 }
 #endif

@@ -98,8 +98,8 @@ void Interpreter::Createtable(sqlstruct::createtable &node){
         out << "Error: Table " + node.name + " Already Exist" << endl;
         return ;
     }
-    cm->addTable(node.name, strexec);
-    this->pos = rm->CreateTable(node.col.record);
+    //cm->addTable(node.name, strexec);
+    api->CreateTable(node, strexec, msg);
 }
 
 void Interpreter::DropTable(std::string table){
@@ -108,7 +108,8 @@ void Interpreter::DropTable(std::string table){
         out << "Error: Table " + table + " does not exist" << endl;
         return ;
     }
-    cm->dropTable(table);
+    //cm->dropTable(table);
+    api->DropTable(table, pos, msg);
 }
 
 void Interpreter::DropIndex(string node){
@@ -117,7 +118,8 @@ void Interpreter::DropIndex(string node){
         out << "Error: Index " + node << " does not exist" << endl;
         return ;
     }
-    cm->dropIndex(node);
+    //cm->dropIndex(node);
+    api->DropIndex(node, pos, msg);
 }
 
 void Interpreter::CreateIndex(sqlstruct::createindex &node){
@@ -142,7 +144,8 @@ void Interpreter::CreateIndex(sqlstruct::createindex &node){
             return ;
         }
     }
-    cm->addIndex(node, tpos);
+    //cm->addIndex(node, tpos);
+    api->CreateIndex(node, table, tpos, msg);
 }
 
 void Interpreter::ExecFile(std::string filename){
@@ -186,7 +189,8 @@ void Interpreter::InsertValues(sqlstruct::insertvalues node){
             return ;
         }
     }
-    rm->InsertRecord(this->pos, node.item);
+   // rm->InsertRecord(this->pos, node.item);
+    api->InsertValues(table, node, pos, msg);
 }
 
 void Interpreter::Select(sqlstruct::selecttable node){
@@ -217,7 +221,8 @@ void Interpreter::Select(sqlstruct::selecttable node){
         out << "Error: Where Clause is invalid" << endl;
         return ;
     }
-    rm->Search(this->pos, table.col.record, node.where);
+   // rm->Search(this->pos, table.col.record, node.where);
+    api->Select(table, node.where, msg);
 }
 
 void Interpreter::Delete(sqlstruct::deletetable node){
@@ -231,7 +236,8 @@ void Interpreter::Delete(sqlstruct::deletetable node){
         out << "Error: Where Clause is invalid" << endl;
         return ;
     }
-    rm->DeleteRecord(this->pos, table.col.record, node.where);
+    //rm->DeleteRecord(this->pos, table.col.record, node.where);
+    api->Delete(table, node.where, msg);
 }
 
 void Exit(){
@@ -241,9 +247,10 @@ bool Interpreter::CheckWhere(sqlstruct::createtable table,sqlstruct::astree *roo
     if(root == NULL)
         return true;
     else if(!root->isleaf){
-        if(root->operate == sqlstruct::NOT)
-            return CheckWhere(table, root->left);
-        else return CheckWhere(table, root->left)&&CheckWhere(table, root->right);
+        //if(root->operate == sqlstruct::NOT)
+          //  return CheckWhere(table, root->left);
+        //else
+        return CheckWhere(table, root->left)&&CheckWhere(table, root->right);
     }
     else {
         if(root->value.type == sqlstruct::VARIABLE){
