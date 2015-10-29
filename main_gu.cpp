@@ -15,41 +15,47 @@ BufferManager bm = BufferManager();
 
 struct record{
     int i;
-//    char c[10];
+    char c[10];
     float f;
 };
 
 int main(int argc, const char * argv[]) {
     
     RecordManager rm;
-    string fname = "/Users/andyyang/Documents/MiniSQL/MiniSQL/table.txt";
-    rm.createTableFile(fname);
+    string fname = "/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile";
+    rm.createTableFile("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile");
     
     struct record r;
     r.i = 111;
-//    strcpy(r.c, "hello");
+    strcpy(r.c, "nihao");
     r.f = 3.14159;
-    rm.insertRecords(fname, &r, sizeof(r));
+    rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
     r.i = 112;
-    rm.insertRecords(fname, &r, sizeof(r));
+    rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
 
-//    charNValue c(sizeof("hello"), "hello");
+    string s = "hello";
+    char ccc[10];
+    strcpy(ccc, s.c_str());
+    charNValue c(sizeof(ccc), ccc);
+    
     floatValue f(98.7);
     intValue i(112);
-    condition con1(sizeof(int), FLOAT, EQUAL, f);
+    condition con1(16, FLOAT, EQUAL, f);
     condition con2(0, INT, LESSOREQUAL, i);
-    vector<condition> conditions{con1, con2};
-    //conditions为空时，part num （read/write buffer) 出问题了
+    
+    condition con3(4, CHARN, EQUAL, c);
+    vector<condition> conditions{con1, con2, con3};
 
     r.f = 98.7;
     int k;
-    for (k = 0; k < 300; k++) {
-        r.i = 113;
-        rm.insertRecords(fname, &r, sizeof(r));
+    for (k = 0; k < 2; k++) {
+        r.i = k;
+        strcpy(r.c, "hello");
+        rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", &r, sizeof(r));
     }
     
-    vector<recordPointer> vr = rm.select(fname, k + 2, 26, conditions);
-    rm.deleteRecords(fname, vr);
+    vector<recordPointer> vr = rm.select("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", 38, conditions);
+    rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", vr);
     
     
     unsigned int recordCount;
@@ -75,7 +81,7 @@ int main(int argc, const char * argv[]) {
         
         for (int i = 0; i < recordCount; i++) {
             bm.constReadBuffer(fname, rpStart.blockNum, &res, rpStart.offset+rm.recordPrefixLen, sizeof(struct record));
-            printf("%d %f\n", res.i, res.f);
+            printf("%d %s %f\n", res.i, res.c, res.f);
             
             bm.constReadBuffer(fname, rpStart.blockNum, &rpStart, rpStart.offset+rm.nextOffset, sizeof(recordPointer));
         }

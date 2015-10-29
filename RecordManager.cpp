@@ -165,11 +165,14 @@ int RecordManager::deleteRecords(string tableName, vector<recordPointer> deleteL
 }
 
 
-vector<recordPointer> RecordManager::select(string tableName, int tableTotalSize, int recordSizeInfile, vector<condition> conditions){
+vector<recordPointer> RecordManager::select(string tableName, int recordSizeInfile, vector<condition> conditions){
     
     vector<recordPointer> res;
     recordPointer tmp(0, recordStartPos);
     selectValue tmpValue;
+    unsigned int tableTotalSize;
+    
+    bm.constReadBuffer(tableName, 0, &tableTotalSize, RCPos, sizeof(unsigned int));
     
 //    if (conditions.size() == 0) {
 //        return res;

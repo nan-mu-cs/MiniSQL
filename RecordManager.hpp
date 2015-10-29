@@ -71,7 +71,7 @@ public:
     
     int insertRecords(string tableName, void* recordContent, int size);
     
-    vector<recordPointer> select(string tableName, int tableTotalSize, int recordSizeInFile, vector<condition> conditions);
+    vector<recordPointer> select(string tableName, int recordSizeInFile, vector<condition> conditions);
     
     int deleteRecords(string tableName, vector<recordPointer> deleteList);
 };
