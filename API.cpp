@@ -8,8 +8,11 @@
 
 #include "API.h"
 #include <sstream>
+#include <map>
+#include <algorithm>
 using std::stringstream;
 using std::string;
+using std::map;
 void API::CreateTable(sqlstruct::createtable &table,string createstr,string &msg){
     rm->createTableFile(currentpath + table.name);
     int ntable = 0;
@@ -89,6 +92,20 @@ void API::CreateIndex(sqlstruct::createindex &index, sqlstruct::createtable &tab
     int attr_pos = 0;
     int recordsize = 0;
     int colindex = 0;
+    map<string,int> indexmap;
+    catalog::table_t ctable = cm->FindTable(tablepos);
+    for(int i = 0;i<ctable.numofIndex;i++){
+        off_t tmpos = 0;
+        if(cm->FindIndex(ctable.index[i], tmpos)){
+            catalog::index_t tmpindex = cm->FindIndex(tmpos);
+            indexmap[tmpindex.col[0]] = 1;
+        }
+    }
+    if(indexmap.find(index.col[0])!=indexmap.end()){
+        msg = "Error: table " + table.name + " already has index on " + index.col[0];
+        return ;
+
+    }
     for(i = 0;i<table.col.record.size();i++){
         if(table.col.record[i].name == index.col[0]){
             flag = true;
@@ -101,7 +118,7 @@ void API::CreateIndex(sqlstruct::createindex &index, sqlstruct::createtable &tab
         return ;
     }
     int data_type = table.col.record[colindex].data_type;
-    off_t indexpos = im->newIndex(table.col.record[i].data_type);
+    off_t indexpos = im->newIndex(data_type);
     cm->addIndex(index, tablepos,indexpos);
     off_t posofindex = 0;
     if(!cm->FindIndex(index.indexname, posofindex)){
@@ -132,6 +149,7 @@ void API::DropIndex(std::string name,off_t indexpos,std::string &msg){
     catalog::index_t index = cm->FindIndex(indexpos);
     im->DeleteIndex(index.pos);
     cm->dropIndex(name);
+    msg = "Successfully drop index " + name;
 }
 
 void API::InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &item,off_t tablepos,string &msg){
@@ -218,7 +236,7 @@ void API::InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &it
             }
             case sqlstruct::FLOATNUM:{
                 float fvalue = atof(item.item[j].value.c_str());
-                im->InsertKey(indexpos, fvalue, itempos);
+                im->InsertKey(index.pos, fvalue, itempos);
                 break;
             }
             default:
@@ -274,12 +292,63 @@ vector<vector<string>> API::Select(sqlstruct::createtable &table,sqlstruct::astr
     vector<condition> result = GenCondition(root,table);
     return rm->selectRecords(currentpath + table.name, recordSize, result, attrTypes);
 }
-
-void API::Delete(sqlstruct::createtable &table,sqlstruct::astree *root,std::string &msg){
+bool API::cmp(const del_t &a,const del_t &b){
+    return a.startpos < b.startpos;
+}
+void API::Delete(sqlstruct::createtable &table,sqlstruct::astree *root,off_t tablepos,std::string &msg){
     int recordSize;
+    vector<int> attrTypes;
     for(int i = 0;i<table.col.record.size();i++){
         recordSize += table.col.record[i].size();
+        attrTypes.push_back(table.col.record[i].data_type);
     }
     vector<condition> result = GenCondition(root,table);
-    //rm->deleteRecords(currentpath + table.name, recordSize, result);
+    vector<int> attrPos;
+    vector<del_t> delset;
+    catalog::table_t ctable = cm->FindTable(tablepos);
+    for(int i = 0;i<ctable.numofIndex;i++){
+        off_t indexpos = 0;
+        if(cm->FindIndex(ctable.index[i], indexpos)){
+            catalog::index_t cindex = cm->FindIndex(indexpos);
+            int startpos = 0;
+            int j;
+            for(j = 0;j<table.col.record.size();j++){
+                if(table.col.record[j].name == cindex.col[0]){
+                    break;
+                }
+                startpos += table.col.record[j].size();
+            }
+            if(j<table.col.record.size()){
+                attrPos.push_back(startpos);
+                del_t tmp;
+                tmp.startpos = startpos;
+                tmp.data_type = table.col.record[j].data_type;
+                tmp.pos = cindex.pos;
+                delset.push_back(tmp);
+            }
+        }
+    }
+    sort(attrPos.begin(), attrPos.end());
+    sort(delset.begin(), delset.end(), cmp);
+    vector<vector<string>> delrecord = rm->deleteRecords(currentpath + table.name, recordSize, result, attrPos, attrTypes);
+    for(int i = 0;i<delrecord.size();i++){
+        for(int j = 0;j<delrecord[i].size();j++){
+            if(delset[j].data_type == sqlstruct::INTNUM){
+                im->DeleteKey(delset[j].pos, atoi(delrecord[i][j].c_str()));
+            }
+            else if(delset[j].data_type == sqlstruct::FLOATNUM){
+                im->DeleteKey(delset[j].pos, (float)atof(delrecord[i][j].c_str()));
+            }
+            else {
+                size_t size = delrecord[i][j].length() + 1;
+                char *str = new char [size];
+                strcpy(str, delrecord[i][j].c_str());
+                im->DeleteKey(delset[j].pos, str);
+                delete str;
+            }
+        }
+    }
+    stringstream ss;
+    ss << "Successfully delete "  << delrecord.size() << " records" ;
+    msg = ss.str();
 }

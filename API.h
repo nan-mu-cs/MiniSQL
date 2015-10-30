@@ -26,10 +26,16 @@ public:
     void DropIndex(std::string name,off_t indexpos,std::string &msg);
     void InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &item,off_t tablepos,std::string &msg);
     vector<vector<string>> Select(sqlstruct::createtable &table,sqlstruct::astree *root,std::string &msg);
-    void Delete(sqlstruct::createtable &table,sqlstruct::astree *root,std::string &msg);
+    void Delete(sqlstruct::createtable &table,sqlstruct::astree *root,off_t tablepos,std::string &msg);
 private:
     vector<condition> GenCondition(sqlstruct::astree *root,sqlstruct::createtable &table);
     int CalStarPos(sqlstruct::createtable &table,int i);
+    struct del_t{
+        int startpos;
+        int data_type;
+        off_t pos;
+    };
+    static bool cmp(const del_t &a,const del_t &b);
 };
 
 #endif /* defined(____API__) */

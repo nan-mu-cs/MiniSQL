@@ -145,7 +145,7 @@ class insertitem{
             if (data_type != FLOATNUM) {
                 return value == item2.value;
             }else{
-                return abs(getFloat() - item2.getFloat()) < 0.00001;
+                return fabs(getFloat() - item2.getFloat()) < 0.00001;
             }
             
         }

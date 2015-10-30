@@ -20,6 +20,7 @@ void Interpreter::run(){
     FILE *stream;
     string tmp,used,left;
     while(1){
+        out << ">>>";
         getline(in,tmp);
         tmp += "\n";
         int i;
@@ -65,6 +66,7 @@ void Interpreter::ParserFile(string filepath){
         if(i<tmp.length()){
             i++;
             used = left + used;
+            out << ">>>" <<used << endl;
             tmp.clear();
             left.clear();
             strexec = used;
@@ -258,7 +260,7 @@ void Interpreter::Delete(sqlstruct::deletetable node){
         return ;
     }
     //rm->DeleteRecord(this->pos, table.col.record, node.where);
-    api->Delete(table, node.where, msg);
+    api->Delete(table, node.where, pos ,msg);
     out << msg << endl;
 }
 

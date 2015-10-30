@@ -90,6 +90,7 @@ public:
     bool addTable(std::string name,std::string createstr);
     /*find table named name, return exist or not and the addr in catalog file*/
     bool FindTable(std::string name,off_t &position);
+    //void UpdateTable(off_t tablepos,table_t &table){unmap(tablepos, table);}
     table_t FindTable(off_t tablepos);
     /*find index named name, return exist or not and the addr in catalog file*/
     bool FindIndex(std::string name,off_t &position);

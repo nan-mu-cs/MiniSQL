@@ -135,7 +135,7 @@ off_t IndexManager::newIndex(int dataType){
         return pos;
     }
     else {
-        int size = dataType - sqlstruct::CHAR;
+        int size = dataType - sqlstruct::CHAR + 1;
         off_t pos = AllocMeta();
         bpt::BplusTree<String> tree(pos,true);
         tree.BuildNewTree(pos, sizeof(size_t) + size);

@@ -48,7 +48,7 @@ struct Float{
         return a.value<b.value;
     }
     friend bool operator==(const struct Float &a,const struct Float &b){
-        return abs(a.value - b.value)<0.00001;
+        return fabs(a.value - b.value)<0.00001;
     }
     friend bool operator>=(const struct Float &a,const struct Float &b){
         return a.value>=b.value;
