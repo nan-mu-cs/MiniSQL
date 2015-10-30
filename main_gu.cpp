@@ -96,7 +96,7 @@ int main(int argc, const char * argv[]) {
     cout << "delete keys: "<< endl;
     vector<int> attrPositions = {4, 0};
     vector<int> attrTypes = {CHAR+10, INTNUM};
-    vector<vector<string> > deleteKeys = rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", sizeof(int)+sizeof(float)+10, conditions, attrPositions, attrTypes);
+    vector<vector<string> > deleteKeys = rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", sizeof(int)+sizeof(float)+10, noCondition, attrPositions, attrTypes);
     for (int i = 0; i < deleteKeys.size(); i++) {
         for (int j = 0; j < deleteKeys[i].size(); j++) {
             cout << deleteKeys[i][j] << " ";

@@ -72,7 +72,7 @@ class insertitem{
 		int data_type;
         insertitem(){};
         insertitem(std::string valueInput, int type):value(valueInput), data_type(type) {};
-        int size(){
+        int size() const{
             switch (data_type) {
                 case INTNUM:
                     return sizeof(int);
