@@ -1,148 +1,152 @@
 //
 //  main.cpp
-//  BplusTree
+//  MiniSQL
 //
-//  Created by 杨凯 on 15/9/24.
-//  Copyright (c) 2015年 杨凯. All rights reserved.
+//  Created by 顾秀烨 on 10/12/15.
+//  Copyright © 2015 laoreja. All rights reserved.
 //
+
 #include <iostream>
+#include "BufferManager.hpp"
+#include "BlockForBuffer.hpp"
+#include "RecordManager.hpp"
+#include "IndexManager.h"
+#include "API.h"
 #include "CatalogManager.h"
 #include "Interpreter.h"
-#include "IndexManager.h"
-#include "BufferManager.hpp"
-#include "sqlstruct.h"
-#include "RManager.h"
-using namespace std;
+//for test
 BufferManager bm = BufferManager();
-char str[10] = "aaaaaaaaa";
-void nextstr(){
-    for(int i = 0;i<8;i++)
-    if(str[i]<'z')
-    {
-        str[i]++;
-        return ;
-    }
-}
-//string RecordManager::filepath = "/Users/andyyang/Documents/MiniSQL/MiniSQL/table.txt";
-int main(){
+
+
+int main(int argc, const char * argv[]) {
+    RecordManager rm;
+    IndexManager im;
+    API api;
     CatalogManager cm;
+    Interpreter it(std::cin,std::cout,&cm);
+    api.rm = &rm;
+    api.im = &im;
+    api.cm = &cm;
+    im.SetBuffer(bm);
+    im.InitFromEmpty();
     cm.SetBuffer(bm);
     cm.InitFromEmpty();
-    //cm.InitFromFile();
-    RecordManager rm;
-    rm.SetBuffer(bm);
-    rm.InitFromEmpty();
-    Interpreter it(std::cin,std::cout,&cm);
-    it.rm = &rm;
+    it.api = &api;
     it.run();
-    //cm.InitFromEmpty();
-    //cm.Select();
-    //IndexManager im;
-    //im.SetBuffer(bm);
-    //im.InitFromEmpty();
-    //im.InitFromFile();
     /*
-    off_t pos = im.newIndex(sqlstruct::INTNUM);
-    for(int i = 0;i<300;i++){
-        im.InsertKey(pos, i, i);
-    }
-    for(int i = 20;i<30;i++)
-    im.DeleteKey(pos, i);
-    for(int i = 0;i<300;i++){
-        if(im.SearchKey(pos, i) == -1)
-            cout << i << endl;
-    }*/
-    //off_t pos = im.newIndex(sqlstruct::CHAR + 10);
-    /*
-    for(int i = 0;i<300;i++){
-        im.InsertKey(pos, str, i);
-        nextstr();
-    }*/
-    /*
-    off_t pos = 10008;
-    strcpy(str, "aaaaaaaaa");
-    for(int i = 0;i<300;i++){
-        if(im.SearchKey(pos, str) == -1)
-            cout << i << endl;
-    }*/
-    //cout << im.SearchKey(pos, "aasdfasdf") << endl;
-}
+    RecordManager rm;
+    string fname = "/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile";
+    rm.createTableFile("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile");
+    int recordContentSize = sizeof(int)+sizeof(float)+10;
+    
+    vector<insertitem> r;
+    
+    r.push_back(insertitem("111", INTNUM));
+    r.push_back(insertitem("nihao", CHAR+10));
+    r.push_back(insertitem("3.14159", FLOATNUM));
+    recordPointer rp1 = rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", r, sizeof(int)+sizeof(float)+10);
+    printf("rp1, %d : %u\n", rp1.blockNum, rp1.offset);
+    
+    r.clear();
+    r.push_back(insertitem("112", INTNUM));
+    r.push_back(insertitem("nihao", CHAR+10));
+    r.push_back(insertitem("3.14159", FLOATNUM));
+    recordPointer rp2 = rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", r, sizeof(int)+sizeof(float)+10);
+    printf("rp2, %d : %u\n", rp2.blockNum, rp2.offset);
+    
+    condition con1(14, EQUAL, insertitem("98.7", FLOATNUM));
+    condition con2(0, LESSOREQUAL, insertitem("111", INTNUM));
+    condition con3(4, EQUAL, insertitem("hello", CHAR + 10));
+    vector<condition> conditions{con2};
+    vector<condition> noCondition{};
 
-/*
-#include <iostream>
-#include <stdlib.h>
-#include <vector>
-#include "BplusTree.h"
-struct key{
-    off_t k;
-    bool cmp(const struct key &a,const struct key &b) const {
-        return a.k<b.k;
+    int k;
+    for (k = 0; k < 300; k++) {
+        r.clear();
+        r.push_back(insertitem(to_string(k), INTNUM));
+        r.push_back(insertitem("hello", CHAR+10));
+        r.push_back(insertitem("98.7", FLOATNUM));
+        rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", r, sizeof(int)+sizeof(float)+10);
     }
-    friend bool operator==(const struct key &a,const struct key &b){
-        return a.k == b.k;
+
+    
+    vector<int> attrType = {INTNUM, CHAR+10, FLOATNUM};
+    
+    vector<vector<string> > selectRes = rm.selectRecords(fname, sizeof(int)+sizeof(float)+10, conditions, attrType);
+    cout << "select results:" << endl;
+    vector<vector<string> >::iterator it;
+    for (it = selectRes.begin(); it != selectRes.end(); it++) {
+        vector<string>::iterator insideIt;
+        for (insideIt = it->begin(); insideIt != it->end(); insideIt++) {
+            cout << *insideIt << " ";
+        }
+        cout << endl;
     }
-    friend bool operator>=(const struct key &a,const struct key &b){
-        return a.k>=b.k;
+    
+    cout << "select * results:" << endl;
+    vector<vector<string> > selectStartRes = rm.selectRecords(fname, recordContentSize, noCondition, attrType);
+    for (it = selectStartRes.begin(); it != selectStartRes.end(); it++) {
+        vector<string>::iterator insideIt;
+        for (insideIt = it->begin(); insideIt != it->end(); insideIt++) {
+            cout << *insideIt << " ";
+        }
+        cout << endl;
     }
-    friend bool operator<=(const struct key &a,const struct key &b){
-        return a.k<=b.k;
+    
+    cout << "delete keys: "<< endl;
+    vector<int> attrPositions = {4, 0};
+    vector<int> attrTypes = {CHAR+10, INTNUM};
+    vector<vector<string> > deleteKeys = rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", sizeof(int)+sizeof(float)+10, conditions, attrPositions, attrTypes);
+    for (int i = 0; i < deleteKeys.size(); i++) {
+        for (int j = 0; j < deleteKeys[i].size(); j++) {
+            cout << deleteKeys[i][j] << " ";
+        }
+        cout << endl;        
     }
-    friend bool operator>(const struct key &a,const struct key &b){
-        return a.k>b.k;
+    
+    
+    
+    unsigned int recordCount;
+    bm.constReadBuffer(fname, 0, &recordCount, rm.RCPos, sizeof(unsigned int));
+    printf("record size: %u\n", recordCount);
+    
+    recordPointer rpStart(0, rm.recordStartPos);
+    int tempDeleteBit;
+    int recordSizeInFile = rm.recordPrefixLen+recordContentSize;
+    
+    cout << "remaining records:" << endl;
+    if (recordCount > 0) {
+        bm.constReadBuffer(fname, rpStart.blockNum, &tempDeleteBit, rpStart.offset+rm.deleteBitOffset, sizeof(short));
+        while (tempDeleteBit) {
+            rpStart.offset+=recordSizeInFile;
+            if (rpStart.offset >= BUFFERSIZE) {
+                rpStart.offset = 0;
+                rpStart.blockNum += 1;
+            }
+            bm.constReadBuffer(fname, rpStart.blockNum, &tempDeleteBit, rpStart.offset+rm.deleteBitOffset, sizeof(short));
+        }
+
+        
+        for (int i = 0; i < recordCount; i++) {
+            int iv;
+            float fv;
+            char cv[10];
+            
+            bm.constReadBuffer(fname, rpStart.blockNum, &iv, rpStart.offset+rm.recordPrefixLen, sizeof(int));
+            bm.constReadBuffer(fname, rpStart.blockNum, cv, rpStart.offset+rm.recordPrefixLen+sizeof(int), 10);
+            bm.constReadBuffer(fname, rpStart.blockNum, &fv, rpStart.offset+rm.recordPrefixLen+sizeof(int)+10, sizeof(float));
+            printf("%d %s %f\n", iv, cv, fv);
+            
+            bm.constReadBuffer(fname, rpStart.blockNum, &rpStart, rpStart.offset+rm.nextOffset, sizeof(recordPointer));
+        }
     }
-    friend bool operator<(const struct key &a,const struct key &b){
-        return a.k<b.k;
+    vector<indexPair> ipv = rm.returnIndexInfo(fname, 4, CHAR+10, 18);
+    printf("return index info:\n");
+    for (int i = 0; i < ipv.size(); i++) {
+        printf("%s: %d - %u\n", ipv[i].first.c_str(), ipv[i].second.blockNum, ipv[i].second.offset);
     }
-    void operator=(const int &a){
-        k = a;
-    }
-    key(const int &a){
-        k = a;
-    }
-    key(){
-    }
-};
-int main(int argc, const char * argv[]) {
-    // insert code here...
-    //std::cout << "Hello, World!\n";
-    bpt::BplusTree<struct key> a(true);
-    //a.GetKeyAndValueSize(4, 8);
-    a.setOrder(2);
-    a.BuildNewTree();
-    struct key node;
-    long long value = 2;
-    //a.printAllLeaf();
-    for(int i = 0;i<500;i++)
-    {
-        node.k = 500 - i;
-        //node.k = 30 - i;
-        value = 500 - i;
-        a.insert(node, value);
-        //a.printAllLeaf();
-    }
-    a.levelorder();
-    for(int i = 0;i<500;i++){
-        node.k = 500 - i;
-        a.search(node, value);
-        assert(value == 500 - i);
-    }
-    std::vector<long long> result;
-    key minkey,maxkey;
-    minkey.k = 10;
-    maxkey.k = 20;
-    a.searchrange(minkey, maxkey, result);
-    std::cout << result.size() << std::endl;
-    //a.printAllLeaf();
-    for(int i = 0;i<500;i++){
-        node.k = i;
-        a.remove(node);
-        a.levelorder();
-        a.search(node, value);
-        //assert(value != i);
-    }
-    //node.k = 5;
-    //a.remove(node);
-    //a.search(node, value);
-    //assert(value == 5);
+    
+    bm.save();*/
+    
     return 0;
-}*/
+}

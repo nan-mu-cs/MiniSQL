@@ -220,13 +220,13 @@ recordPointer RecordManager::insertRecords(string tableName, vector<insertitem>&
 }
 
 
-vector<vector<string>> RecordManager::deleteRecords(string tableName, int recordSize, vector<condition>& conditions, vector<int>& attrPositions, vector<int>& attrTypes){
+vector<vector<string> > RecordManager::deleteRecords(string tableName, int recordSize, vector<condition>& conditions, vector<int>& attrPositions, vector<int>& attrTypes){
     recordPointer next;
     recordPointer last;
     recordPointer ELHead;
     unsigned int recordCount;
     short deleteBit = 1;
-    vector<vector<string>> res;
+    vector<vector<string> > res;
     
     vector<recordPointer> deleteList = select(tableName, recordSize, conditions, true, attrPositions, attrTypes, res);
     

@@ -25,7 +25,7 @@ public:
     void CreateIndex(sqlstruct::createindex &index,sqlstruct::createtable &table,off_t tablepos,std::string &msg);//not add msg
     void DropIndex(std::string name,off_t indexpos,std::string &msg);
     void InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &item,off_t tablepos,std::string &msg);
-    vector<vector<string>> Select(sqlstruct::createtable &table,sqlstruct::astree *root,std::string &msg);
+    vector<vector<string> > Select(sqlstruct::createtable &table,sqlstruct::astree *root,std::string &msg);
     void Delete(sqlstruct::createtable &table,sqlstruct::astree *root,off_t tablepos,std::string &msg);
 private:
     vector<condition> GenCondition(sqlstruct::astree *root,sqlstruct::createtable &table);

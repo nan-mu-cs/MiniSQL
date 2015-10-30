@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 #define CHARBASE 120000
 using std::istream;
 using std::string;
@@ -188,7 +189,7 @@ void Interpreter::InsertValues(sqlstruct::insertvalues node){
     }
     for(int i = 0;i<node.item.size();i++){
         if(node.item[i].data_type == sqlstruct::STRING&&table.col.record[i].data_type>CHARBASE){
-            if(node.item[i].value.length()>table.col.record[i].data_type - sqlstruct::CHAR + 1){
+            if(node.item[i].value.length()>table.col.record[i].data_type - sqlstruct::CHAR){
                 //out << node.item[i].value.length() << endl;
                 out << "Error : string out of length" << '(' << node.item[i].value <<')' << endl;
                 return ;
@@ -236,13 +237,17 @@ void Interpreter::Select(sqlstruct::selecttable node){
     }
    // rm->Search(this->pos, table.col.record, node.where);
     msg = "";
-    vector<vector<string>> result = api->Select(table, node.where, msg);
+    vector<vector<string> > result = api->Select(table, node.where, msg);
     for(int i = 0;i<table.col.record.size();i++)
-        out << table.col.record[i].name << '\t';
+        if(table.col.record[i].data_type>=sqlstruct::CHAR)
+            out <<setw(table.col.record[i].data_type - sqlstruct::CHAR + 2) <<table.col.record[i].name;
+        else out << setw(10) << table.col.record[i].name;
     out << endl;
     for(int i = 0;i<result.size();i++){
         for(int j = 0;j<result[i].size();j++)
-            out << result[i][j] << '\t';
+            if(table.col.record[j].data_type>=sqlstruct::CHAR)
+                out << setw(table.col.record[j].data_type - sqlstruct::CHAR + 2)<<result[i][j];
+            else out << setw(10) << result[i][j];
         out << endl;
     }
     out << msg << endl;

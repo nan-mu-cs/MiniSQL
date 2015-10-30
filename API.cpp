@@ -282,7 +282,7 @@ vector<condition> API::GenCondition(sqlstruct::astree *root,sqlstruct::createtab
     }
     return result;
 }
-vector<vector<string>> API::Select(sqlstruct::createtable &table,sqlstruct::astree *root,std::string &msg){
+vector<vector<string> > API::Select(sqlstruct::createtable &table,sqlstruct::astree *root,std::string &msg){
     vector<int> attrTypes;
     int recordSize;
     for(int i = 0;i<table.col.record.size();i++){
@@ -330,7 +330,7 @@ void API::Delete(sqlstruct::createtable &table,sqlstruct::astree *root,off_t tab
     }
     sort(attrPos.begin(), attrPos.end());
     sort(delset.begin(), delset.end(), cmp);
-    vector<vector<string>> delrecord = rm->deleteRecords(currentpath + table.name, recordSize, result, attrPos, attrTypes);
+    vector<vector<string> > delrecord = rm->deleteRecords(currentpath + table.name, recordSize, result, attrPos, attrTypes);
     for(int i = 0;i<delrecord.size();i++){
         for(int j = 0;j<delrecord[i].size();j++){
             if(delset[j].data_type == sqlstruct::INTNUM){

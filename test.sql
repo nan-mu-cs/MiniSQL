@@ -1,32 +1,30 @@
-create table big  (
-	a int,
-	b int,
-	c int,
-	d int,
-	e int,
-	f int,
-	g char (10),
-	h char (10),
-	i char (10),
-	j float,
-	primary key (a)
+create table student (
+	sno char(8),
+	sname char(16) unique,
+	sage int,
+	sgender char (1),
+	primary key ( sage )
 );
+create index index1 on student (sno);
+create index index1 on student (sname);
+insert into student values ('123456','a',27,'F');
+insert into student values ('12345','b',28,'M');
+insert into student values ('12345678','c',29,'M');
+insert into student values ('1234567','d',30,'M');
+insert into student values ('123456','e',31,'F');
+insert into student values ('12345','f',32,'M');
+insert into student values ('12345678','g',21,'M');
+insert into student values ('1234567','h',22,'M');
+insert into student values ('123456','i',23,'F');
+insert into student values ('12345','j',24,'M');
+insert into student values ('12345678','k',25,'M');
+insert into student values ('1234567','l',26,'M');
 
-create index abig on big (a);
-
-create index bbig on big (b);
-
-create index cbig on big (c);
-
-create index dbig on big (d);
-
-create index ebig on big (e);
-
-create index fbig on big (f);
-
-create index gbig on big (g);
-
-create index hbig on big (h);
-
-create index ibig on big (i);
-
+select * from student;
+select * from student where sname > 'c' and sage < 31;
+select * from student where sage < 31 ;
+select * from student where sage < 31 and sgender <> 'F';
+delete from student where sage < 28 and sgender <> 'F';
+select * from student where sage < 31 ;
+drop table student;
+quit;

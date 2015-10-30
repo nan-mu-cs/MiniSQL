@@ -142,7 +142,7 @@ public:
                     return false;
                 }
             case FLOAT:
-                return abs(*fValue - *(v2.fValue)) < ZERO;
+                return fabs(*fValue - *(v2.fValue)) < ZERO;
         }
     }
     
