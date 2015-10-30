@@ -58,6 +58,7 @@ int main(int argc, const char * argv[]) {
     condition con2(0, LESSOREQUAL, insertitem("111", INTNUM));
     condition con3(4, EQUAL, insertitem("hello", CHAR + 10));
     vector<condition> conditions{con2};
+    vector<condition> noCondition{};
 
     int k;
     for (k = 0; k < 300; k++) {
@@ -67,10 +68,12 @@ int main(int argc, const char * argv[]) {
         r.push_back(insertitem("98.7", FLOATNUM));
         rm.insertRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", r, sizeof(int)+sizeof(float)+10);
     }
+
     
-    cout << "select results:" << endl;
     vector<int> attrType = {INTNUM, CHAR+10, FLOATNUM};
+    
     vector<vector<string> > selectRes = rm.selectRecords(fname, sizeof(int)+sizeof(float)+10, conditions, attrType);
+    cout << "select results:" << endl;
     vector<vector<string> >::iterator it;
     for (it = selectRes.begin(); it != selectRes.end(); it++) {
         vector<string>::iterator insideIt;
@@ -80,10 +83,25 @@ int main(int argc, const char * argv[]) {
         cout << endl;
     }
     
+    cout << "select * results:" << endl;
+    vector<vector<string> > selectStartRes = rm.selectRecords(fname, recordContentSize, noCondition, attrType);
+    for (it = selectStartRes.begin(); it != selectStartRes.end(); it++) {
+        vector<string>::iterator insideIt;
+        for (insideIt = it->begin(); insideIt != it->end(); insideIt++) {
+            cout << *insideIt << " ";
+        }
+        cout << endl;
+    }
+    
     cout << "delete keys: "<< endl;
-    vector<string> deleteKeys = rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", sizeof(int)+sizeof(float)+10, conditions, 4, CHAR+10);
+    vector<int> attrPositions = {4, 0};
+    vector<int> attrTypes = {CHAR+10, INTNUM};
+    vector<vector<string> > deleteKeys = rm.deleteRecords("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile", sizeof(int)+sizeof(float)+10, conditions, attrPositions, attrTypes);
     for (int i = 0; i < deleteKeys.size(); i++) {
-        cout << deleteKeys[i] << endl;
+        for (int j = 0; j < deleteKeys[i].size(); j++) {
+            cout << deleteKeys[i][j] << " ";
+        }
+        cout << endl;        
     }
     
     
