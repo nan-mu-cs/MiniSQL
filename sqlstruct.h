@@ -90,9 +90,28 @@ class insertitem{
         float getFloat(){
             return stof(value);
         }
-        char* getCharN(){
-            return (char*)value.c_str();
+        const char* getCharN(){
+            return value.c_str();
         }
+        /* another correct version:
+         *  void getCharN(char* des){
+         *      strcpy(des, value.c_str();
+         *  }
+         *
+         */
+        /* wrong version:
+         * char* getCharN(){
+         *      return value.c_str();
+         * }
+         *
+         * when called by rm.insertRecords(..), signal SIGABRT
+         *      malloc: *** error for object: pointer being freed was not allocated *** set a breakpoint in malloc_error_break to debug
+         * and the value in cNValue is correct...
+         * error, because the cNValue receive's xxx.c_str()'s address, the two pointers equal. And I assume that the space allocated by c_str() call would be cleared by the system??
+            so the delet[] cNValue made a second time delete. and caused error.
+            one more time, delete would not make the pointer equal NULL.
+         */
+        
         bool operation(operate op, insertitem item2){
             switch (op) {
                 case EQUAL:

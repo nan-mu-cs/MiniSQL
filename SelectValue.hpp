@@ -16,7 +16,6 @@
 #include "BufferManager.hpp"
 
 enum SelectOp{EQUAL = 1, NOTEQUAL, LESSTHAN, GREATERTHAN, LESSOREQUAL, GREATEROREQUAL};
-
 enum valueType{INT = 1, CHARN, FLOAT};
 
 
