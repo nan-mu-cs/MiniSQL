@@ -220,15 +220,15 @@ recordPointer RecordManager::insertRecords(string tableName, vector<insertitem>&
 }
 
 
-vector<string> RecordManager::deleteRecords(string tableName, int recordSize, vector<condition>& conditions, int attrPos, int attrType){
+vector<vector<string>> RecordManager::deleteRecords(string tableName, int recordSize, vector<condition>& conditions, vector<int>& attrPositions, vector<int>& attrTypes){
     recordPointer next;
     recordPointer last;
     recordPointer ELHead;
     unsigned int recordCount;
     short deleteBit = 1;
-    vector<string> res;
+    vector<vector<string>> res;
     
-    vector<recordPointer> deleteList = select(tableName, recordSize, conditions, true, attrPos, attrType, res);
+    vector<recordPointer> deleteList = select(tableName, recordSize, conditions, true, attrPositions, attrTypes, res);
     
     bm.constReadBuffer(tableName, 0, &recordCount, RCPos, sizeof(unsigned int));
     
@@ -254,7 +254,7 @@ vector<string> RecordManager::deleteRecords(string tableName, int recordSize, ve
 }
 
 
-vector<recordPointer> RecordManager::select(string tableName, int recordSize, vector<condition>& conditions, bool returnDeleteKey, int attrPos, int attrType, vector<string>& deleteKeys){
+vector<recordPointer> RecordManager::select(string tableName, int recordSize, vector<condition>& conditions, bool returnDeleteKey, vector<int>& attrPositions, vector<int>& attrTypes, vector<vector<string> >& deleteKeys){
     vector<recordPointer> res;
     recordSize += recordPrefixLen;
     
@@ -273,70 +273,90 @@ vector<recordPointer> RecordManager::select(string tableName, int recordSize, ve
         }
         bm.constReadBuffer(tableName, tmp.blockNum, &deleteBit, tmp.offset+deleteBitOffset, sizeof(short));
     }
+    
 
+    if (conditions.size() == 0) {
+        for (int j = 0; j < tableTotalSize ; j++) {
+            res.push_back(tmp);
+            bm.constReadBuffer(tableName, tmp.blockNum, &tmp, tmp.offset, sizeof(recordPointer));
+        }
+        return res;
+    }
+    
     int i = 0;
     for (int j = 0; j < tableTotalSize; j++) {
-        switch (conditions[i].value.data_type) {
-            case INTNUM:
-            {
-                int iValue;
-                bm.constReadBuffer(tableName, tmp.blockNum, &iValue, tmp.offset+recordPrefixLen+conditions[i].attr_startPos, sizeof(int));
-                tmpValue.data_type = INTNUM;
-                tmpValue.value = to_string(iValue);
-                break;
-            }
-            case FLOATNUM:
-            {
-                float fValue;
-                bm.constReadBuffer(tableName, tmp.blockNum, &fValue, tmp.offset+recordPrefixLen+conditions[i].attr_startPos, sizeof(float));
-                tmpValue.data_type = FLOATNUM;
-                tmpValue.value = to_string(fValue);
-                break;
-            }
-            default:
-            {
-                char* cValue = new char[conditions[i].value.size()];
-                bm.constReadBuffer(tableName, tmp.blockNum, cValue, tmp.offset+recordPrefixLen+conditions[i].attr_startPos, conditions[i].value.size());
-                tmpValue.data_type = CHAR + conditions[i].value.size();
-                tmpValue.value = string(cValue);
-                delete[] cValue;
-                break;
+        if (conditions.size() > 0) {
+            switch (conditions[i].value.data_type) {
+                case INTNUM:
+                {
+                    int iValue;
+                    bm.constReadBuffer(tableName, tmp.blockNum, &iValue, tmp.offset+recordPrefixLen+conditions[i].attr_startPos, sizeof(int));
+                    tmpValue.data_type = INTNUM;
+                    tmpValue.value = to_string(iValue);
+                    break;
+                }
+                case FLOATNUM:
+                {
+                    float fValue;
+                    bm.constReadBuffer(tableName, tmp.blockNum, &fValue, tmp.offset+recordPrefixLen+conditions[i].attr_startPos, sizeof(float));
+                    tmpValue.data_type = FLOATNUM;
+                    tmpValue.value = to_string(fValue);
+                    break;
+                }
+                default:
+                {
+                    char* cValue = new char[conditions[i].value.size()];
+                    bm.constReadBuffer(tableName, tmp.blockNum, cValue, tmp.offset+recordPrefixLen+conditions[i].attr_startPos, conditions[i].value.size());
+                    tmpValue.data_type = CHAR + conditions[i].value.size();
+                    tmpValue.value = string(cValue);
+                    delete[] cValue;
+                    break;
+                }
             }
         }
 
-        if (tmpValue.operation(conditions[i].op, conditions[i].value)) {
+        if (conditions.size() == 0 || tmpValue.operation(conditions[i].op, conditions[i].value)) {
             res.push_back(tmp);
+            vector<string> oneLineDeleteKeys;
             if (returnDeleteKey) {
-                switch (attrType) {
-                    case INTNUM:
-                    {
-                        int tmpIntForDeleteKey;
-                        bm.constReadBuffer(tableName, tmp.blockNum, &tmpIntForDeleteKey, tmp.offset+recordPrefixLen+attrPos, sizeof(int));
-                        deleteKeys.push_back(to_string(tmpIntForDeleteKey));
-                        break;
-                    }
-                    case FLOATNUM:{
-                        float tmpFloatForDeleteKey;
-                        bm.constReadBuffer(tableName, tmp.blockNum, &tmpFloatForDeleteKey, tmp.offset+recordPrefixLen+attrPos, sizeof(float));
-                        deleteKeys.push_back(to_string(tmpFloatForDeleteKey));
-                        break;
-                    }
-                    default:
-                    {
-                        char* tmpCharNForDeleteKey = new char[attrType - CHAR];
-                        bm.constReadBuffer(tableName, tmp.blockNum, tmpCharNForDeleteKey, tmp.offset+recordPrefixLen+attrPos, attrType-CHAR);
-                        deleteKeys.push_back(string(tmpCharNForDeleteKey));
-                        break;
+                for (int k = 0; k < attrPositions.size(); k++) {
+                    int attrType = attrTypes[k];
+                    int attrPosition = attrPositions[k];
+                    switch (attrType) {
+                        case INTNUM:
+                        {
+                            int tmpIntForDeleteKey;
+                            bm.constReadBuffer(tableName, tmp.blockNum, &tmpIntForDeleteKey, tmp.offset+recordPrefixLen+attrPosition, sizeof(int));
+                            oneLineDeleteKeys.push_back(to_string(tmpIntForDeleteKey));
+                            break;
+                        }
+                        case FLOATNUM:{
+                            float tmpFloatForDeleteKey;
+                            bm.constReadBuffer(tableName, tmp.blockNum, &tmpFloatForDeleteKey, tmp.offset+recordPrefixLen+attrPosition, sizeof(float));
+                            oneLineDeleteKeys.push_back(to_string(tmpFloatForDeleteKey));
+                            break;
+                        }
+                        default:
+                        {
+                            char* tmpCharNForDeleteKey = new char[attrType - CHAR];
+                            bm.constReadBuffer(tableName, tmp.blockNum, tmpCharNForDeleteKey, tmp.offset+recordPrefixLen+attrPosition, attrType-CHAR);
+                            oneLineDeleteKeys.push_back(string(tmpCharNForDeleteKey));
+                            break;
+                        }
                     }
                 }
+                deleteKeys.push_back(oneLineDeleteKeys);
             }
         }
         bm.constReadBuffer(tableName, tmp.blockNum, &tmp, tmp.offset+nextOffset, sizeof(recordPointer));
     }
+    if (conditions.size() == 0) {
+        return res;
+    }
     
     for (i = 1; i < conditions.size(); i++) {
         vector<recordPointer>::iterator it = res.begin();
-        vector<string>::iterator deleteKeysIt = deleteKeys.begin();
+        vector<vector<string> >::iterator deleteKeysIt = deleteKeys.begin();
         int originalSize = (int)res.size();
         
         for (int k = 0; k < originalSize; k++) {
@@ -386,8 +406,9 @@ vector<recordPointer> RecordManager::select(string tableName, int recordSize, ve
 
 vector<vector<string> > RecordManager::selectRecords(string tablename, int recordSize, vector<condition>& conditions, vector<int>& attrTypes){
     vector<vector<string> > res;
-    vector<string> nouse;
-    vector<recordPointer> resPointers = select(tablename, recordSize, conditions, false, 0, 0, nouse);
+    vector<vector<string> > noUseStrVecVec;
+    vector<int> noUseIntVec;
+    vector<recordPointer> resPointers = select(tablename, recordSize, conditions, false, noUseIntVec, noUseIntVec, noUseStrVecVec);
     for (int i = 0; i < resPointers.size(); i++) {
         vector<string> lineRes;
         int tempPos = recordPrefixLen;

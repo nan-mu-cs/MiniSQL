@@ -74,10 +74,10 @@ public:
     
     vector<vector<string> > selectRecords(string tablename, int recordSize, vector<condition>& conditions, vector<int>& attrTypes);
     
-    vector<string> deleteRecords(string tableName, int recordSize, vector<condition>& conditions, int attrPos, int attrType);
+    vector<vector<string>> deleteRecords(string tableName, int recordSize, vector<condition>& conditions, vector<int>& attrPositions, vector<int>& attrTypes);
     
-    // after passing tests, set to private
-    vector<recordPointer> select(string tableName, int recordSize, vector<condition>& conditions, bool returnDeleteKey, int attrPos, int attrType, vector<string>& deleteKeys);
+private:
+    vector<recordPointer> select(string tableName, int recordSize, vector<condition>& conditions, bool returnDeleteKey, vector<int>& attrPositions, vector<int>& attrTypes, vector<vector<string>>& deleteKeys);
 };
 
 
