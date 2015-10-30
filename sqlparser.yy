@@ -126,13 +126,14 @@ stmt_list: stmt ";"
 expr: NAME { sqlstruct::ele_t ele; ele.value = $1;ele.type = sqlstruct::VARIABLE;$$ = driver.newLeafNode(ele); }
 	| intexp {sqlstruct::ele_t ele;ele.value = itostr($1); ele.type = sqlstruct::INTNUM;$$ = driver.newLeafNode(ele);}
 	| floatexp {sqlstruct::ele_t ele;ele.value = ftostr($1);ele.type = sqlstruct::FLOATNUM;$$ = driver.newLeafNode(ele);}
+	| STRING {sqlstruct::ele_t ele; ele.value = $1; ele.type = sqlstruct::CHAR + ($1).length(); $$ = driver.newLeafNode(ele); }
 	| "(" expr ")" {$$ = $2;}
 	| expr ANDOP expr {$$ = driver.newInternalNode($1,sqlstruct::AND,$3);}
 /*	| expr OR expr {$$ = driver.newInternalNode($1,sqlstruct::OR,$3);}
 	| NOT expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}
 	| "!" expr {$$ = driver.newInternalNode($2,sqlstruct::NOT,NULL);}*/
-/*	| expr COMPARISON expr {$$ = driver.newInternalNode($1,$2,$3);}
-	| expr IS NULLX {$$ = driver.newInternalNode($1,sqlstruct::ISNULL,NULL);}
+	| expr COMPARISON expr {$$ = driver.newInternalNode($1,$2,$3);}
+/*	| expr IS NULLX {$$ = driver.newInternalNode($1,sqlstruct::ISNULL,NULL);}
 	| expr IS NOT NULLX {$$ = driver.newInternalNode($1,sqlstruct::ISNULL,NULL); $$ = driver.newInternalNode($$,sqlstruct::NOT,NULL);}*/
 	| expr BETWEEN expr AND expr %prec BETWEEN { 
 						    sqlstruct::astree *left,*right;
@@ -308,18 +309,18 @@ create_table_stmt: CREATE TABLE NAME "(" create_col_list ")" {($$).name = $3;($$
 
 create_col_list: create_definition {($$).record.clear();($$).record.push_back($1);}
 	       | create_col_list "," create_definition {$$ = $1;($$).record.push_back($3);}
-	       | create_col_list "," PRIMARY KEY "(" column_list ")" {$$ = $1;($$).primarykey = $6;}
+	       | create_col_list "," PRIMARY KEY "(" NAME ")" {$$ = $1;($$).primarykey = $6;}
 
 create_definition:  NAME data_type column_atts {($$).name = $1;($$).data_type = $2;($$).attr = $3; }
 
 column_atts: %empty {($$).clear();}
-	| column_atts NOT NULLX {sqlstruct::col_attr attr; attr.type = $3 + 1000;$$ = $1;($$).push_back(attr);}
+/*	| column_atts NOT NULLX {sqlstruct::col_attr attr; attr.type = $3 + 1000;$$ = $1;($$).push_back(attr);}
 	| column_atts NULLX 	{sqlstruct::col_attr attr; attr.type = $2;$$ = $1;($$).push_back(attr);}
 	| column_atts DEFAULT STRING {sqlstruct::col_attr attr;attr.type = $2; attr.value = $3; $$ = $1;($$).push_back(attr);}
 	| column_atts DEFAULT INTNUM {sqlstruct::col_attr attr;attr.type = $2;attr.value = itostr($3);$$ = $1;($$).push_back(attr);}
 	| column_atts DEFAULT FLOATNUM {sqlstruct::col_attr attr;attr.type = $2; attr.value = ftostr($3);$$ = $1;($$).push_back(attr);}
-	| column_atts AUTO_INCREMENT {sqlstruct::col_attr attr; attr.type = $2;$$ = $1;($$).push_back(attr);}
-	| column_atts UNIQUE 	{sqlstruct::col_attr attr;attr.type = $2;$$ = $1;($$).push_back(attr);}
+	| column_atts AUTO_INCREMENT {sqlstruct::col_attr attr; attr.type = $2;$$ = $1;($$).push_back(attr);}*/
+	| column_atts UNIQUE 	{sqlstruct::col_attr attr;attr.type = $2;$$ = $1;($$).push_back(attr);} 
 	| column_atts PRIMARY KEY {sqlstruct::col_attr attr;attr.type = $2;$$ = $1; ($$).push_back(attr);}
 	;
 

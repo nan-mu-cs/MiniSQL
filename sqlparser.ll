@@ -5,6 +5,7 @@
 	#include <climits>
 	#include <cstdlib>
 	#include <string>
+	#include <string.h>
 	#include "sqlparser_driver.hh"
 	#include "sqlparser.hh"
 	#include "sqlstruct.h"
@@ -12,6 +13,7 @@
 	#define yywrap() 1
 	#define yyterminate() return yy::sqlparser::make_END(loc);
 	static yy::sqlparser::location_type loc;
+	void Removequto(char *str);
 %}
 %option batch debug noinput noyywrap nodefault  yylineno case-insensitive
 
@@ -67,7 +69,7 @@ WHERE	{return yy::sqlparser::make_WHERE(loc);}
 
 [-+]?[0-9]+"."[0-9]+|[+-]?"."[0-9]+	{ return yy::sqlparser::make_FLOATNUM(atof(yytext),loc);}
 
-'[^\n]*'|\"[^\n]'|\"[^\n]*'|\"[^\n]\"	{ return yy::sqlparser::make_STRING(yytext,loc);}
+'(\\.|''|[^'\n])*'|\"(\\.|\"\"|[^"\n])*\" { Removequto(yytext); return yy::sqlparser::make_STRING(yytext,loc);}
 
 
 "+"	{return yy::sqlparser::make_PLUS(loc);}
@@ -120,4 +122,14 @@ void sqlparser_driver::scanPushBuffer(FILE *fp){
 }
 void sqlparser_driver::scanPopBuffer(){
 	yypop_buffer_state();
+}
+void Removequto(char *str){
+	size_t size = strlen(str);
+	char *nstr = new char [size+1];
+	strcpy(nstr,str);
+	int j = 0;
+	for(int i = 1;i<size-1;i++,j++)
+		str[j] = nstr[i];
+	str[j] = '\0';
+	delete nstr;
 }

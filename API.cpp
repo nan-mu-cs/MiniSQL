@@ -17,9 +17,14 @@ void API::CreateTable(sqlstruct::createtable &table,string createstr,string &msg
         msg = "Error:fail to add table " + table.name;
         return ;
     }
+    off_t tablepos;
+    if(!cm->FindTable(table.name, tablepos)){
+        msg = "Error: fail to create table "+ table.name;
+        return ;
+    }
     ntable = 1;
     if(table.col.primarykey.size()>0){
-        string colname = table.col.primarykey[0];
+        string colname = table.col.primarykey;
         int i = 0;
         for(i = 0;i<table.col.record.size();i++)
             if(table.col.record[i].name == colname)
@@ -45,7 +50,7 @@ void API::CreateTable(sqlstruct::createtable &table,string createstr,string &msg
             cindex.tablename = table.name;
             cindex.col.push_back(cindex.indexname);
             off_t indexpos = im->newIndex(table.col.record[i].data_type);
-            if(!cm->addIndex(cindex, indexpos)){
+            if(!cm->addIndex(cindex, tablepos,indexpos)){
                 msg = "Error:fail to add index " + cindex.indexname;
                 return ;
             }
@@ -83,21 +88,28 @@ void API::CreateIndex(sqlstruct::createindex &index, sqlstruct::createtable &tab
     bool flag = false;
     int attr_pos = 0;
     int recordsize = 0;
+    int colindex = 0;
     for(i = 0;i<table.col.record.size();i++){
         if(table.col.record[i].name == index.col[0]){
             flag = true;
             attr_pos = recordsize;
+            colindex = i;
         }
         recordsize += table.col.record[i].size();
     }
     if(!flag){
         return ;
     }
-    int colindex = i;
     int data_type = table.col.record[colindex].data_type;
     off_t indexpos = im->newIndex(table.col.record[i].data_type);
-    cm->addIndex(index, tablepos);
-    catalog::table_t itable = cm->FindTable(tablepos);
+    cm->addIndex(index, tablepos,indexpos);
+    off_t posofindex = 0;
+    if(!cm->FindIndex(index.indexname, posofindex)){
+        msg = "Error:fail to create index " + index.indexname;
+        return ;
+    }
+    //catalog::index_t cindex = cm->FindIndex(posofindex);
+    //catalog::table_t itable = cm->FindTable(tablepos);
     vector<indexPair> result = rm->returnIndexInfo(currentpath + table.name, attr_pos, data_type, recordsize);
     for(int i = 0;i<result.size();i++){
         off_t recordpos = result[i].second.blockNum*BLOCKREMAINDER + result[i].second.offset;
@@ -113,6 +125,7 @@ void API::CreateIndex(sqlstruct::createindex &index, sqlstruct::createtable &tab
                 delete str;
         }
     }
+    msg = "Sucessfully create index " + index.indexname;
 }
 
 void API::DropIndex(std::string name,off_t indexpos,std::string &msg){
@@ -135,10 +148,10 @@ void API::InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &it
         catalog::index_t index = cm->FindIndex(indexpos);
         int j = 0;
         int data_type = 0;
-        for(j = 0;i<table.col.record.size();i++)
-            if(table.col.record[i].name == index.col[0])
+        for(j = 0;j<table.col.record.size();j++)
+            if(table.col.record[j].name == index.col[0])
             {
-                data_type = table.col.record[i].data_type;
+                data_type = table.col.record[j].data_type;
                 break;
             }
         if(j == table.col.record.size())
@@ -148,8 +161,8 @@ void API::InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &it
         switch (data_type) {
             case sqlstruct::INTNUM:{
                 int ivalue = atoi(item.item[j].value.c_str());
-                if(im->SearchKey(indexpos, ivalue)){
-                    msg = "Error: There already exists a record col " + index.col[0] + "has value " + item.item[j].value;
+                if(im->SearchKey(index.pos, ivalue)!=-1){
+                    msg = "Error: There already exists a record col " + index.col[0] + " has value " + item.item[j].value;
                     return ;
                 }
                 //im->InsertKey(indexpos, ivalue, itempos);
@@ -157,8 +170,8 @@ void API::InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &it
             }
             case sqlstruct::FLOATNUM:{
                 float fvalue = atof(item.item[j].value.c_str());
-                if(im->SearchKey(indexpos, fvalue)){
-                    msg = "Error: There already exists a record col " + index.col[0] + "has value " + item.item[j].value;
+                if(im->SearchKey(index.pos, fvalue)!=-1){
+                    msg = "Error: There already exists a record col " + index.col[0] + " has value " + item.item[j].value;
                     return ;
                 }
                 //im->InsertKey(indexpos, fvalue, itempos);
@@ -167,8 +180,8 @@ void API::InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &it
             default:
                 char *str = new char [item.item[j].value.length()+1];
                 strcpy(str, item.item[j].value.c_str());
-                if(im->SearchKey(indexpos, str)){
-                    msg = "Error: There already exists a record col " + index.col[0] + "has value " + item.item[j].value;
+                if(im->SearchKey(index.pos, str)!=-1){
+                    msg = "Error: There already exists a record col " + index.col[0] + " has value " + item.item[j].value;
                     return ;
                 }
                 //im->InsertKey(indexpos, str, itempos);
@@ -187,10 +200,10 @@ void API::InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &it
         catalog::index_t index = cm->FindIndex(indexpos);
         int j = 0;
         int data_type = 0;
-        for(j = 0;i<table.col.record.size();i++)
-            if(table.col.record[i].name == index.col[0])
+        for(j = 0;j<table.col.record.size();j++)
+            if(table.col.record[j].name == index.col[0])
             {
-                data_type = table.col.record[i].data_type;
+                data_type = table.col.record[j].data_type;
                 break;
             }
         if(j == table.col.record.size())
@@ -200,31 +213,23 @@ void API::InsertValues(sqlstruct::createtable &table,sqlstruct::insertvalues &it
         switch (data_type) {
             case sqlstruct::INTNUM:{
                 int ivalue = atoi(item.item[j].value.c_str());
-                if(im->SearchKey(indexpos, ivalue)){
-                    msg = "Error: There already exists a record col " + index.col[0] + "has value " + item.item[j].value;
-                    return ;
-                }
-                im->InsertKey(indexpos, ivalue, itempos);
+                im->InsertKey(index.pos, ivalue, itempos);
                 break;
             }
             case sqlstruct::FLOATNUM:{
                 float fvalue = atof(item.item[j].value.c_str());
-                if(im->SearchKey(indexpos, fvalue)){
-                    msg = "Error: There already exists a record col " + index.col[0] + "has value " + item.item[j].value;
-                    return ;
-                }
                 im->InsertKey(indexpos, fvalue, itempos);
                 break;
             }
             default:
                 char *str = new char [item.item[j].value.length()+1];
                 strcpy(str, item.item[j].value.c_str());
-                im->InsertKey(indexpos, str, itempos);
+                im->InsertKey(index.pos, str, itempos);
                 delete str;
                 break;
         }
     }
-
+    msg = "Sucessfully insert 1 record";
 }
 int API::CalStarPos(sqlstruct::createtable &table,int index){
     int startpos = 0;
@@ -248,10 +253,13 @@ vector<condition> API::GenCondition(sqlstruct::astree *root,sqlstruct::createtab
         result.insert(result.end(), right.begin(),right.end());
     }
     else {
-        int startpos = CalStarPos(table, atoi(root->left->value.value.c_str()));
+        int index = atoi(root->left->value.value.c_str());
+        int startpos = CalStarPos(table, index);
         insertitem item;
         item.value = root->right->value.value;
-        item.data_type = root->right->value.type;
+        if(root->right->value.type>=sqlstruct::CHAR&&table.col.record[index].data_type>=sqlstruct::CHAR)
+            item.data_type = table.col.record[index].data_type;
+        else item.data_type = root->right->value.type;
         result.push_back(condition(startpos, (operate)root->operate, item));
     }
     return result;
@@ -273,5 +281,5 @@ void API::Delete(sqlstruct::createtable &table,sqlstruct::astree *root,std::stri
         recordSize += table.col.record[i].size();
     }
     vector<condition> result = GenCondition(root,table);
-    rm->deleteRecords(currentpath + table.name, recordSize, result);
+    //rm->deleteRecords(currentpath + table.name, recordSize, result);
 }

@@ -64,11 +64,12 @@ bool CatalogManager::FindIndex(string name, off_t &position){
 
 }
 
-bool CatalogManager::addIndex(sqlstruct::createindex index,off_t tablepos){
+bool CatalogManager::addIndex(sqlstruct::createindex index,off_t tablepos,off_t indexpos){
     index_t indexnode;
     indexnode.name = index.indexname;
     indexnode.table = index.tablename;
     indexnode.numofcol = index.col.size();
+    indexnode.pos = indexpos;
     for(int i = 0;i<indexnode.numofcol;i++){
         indexnode.col[i] = index.col[i];
     }
@@ -408,7 +409,7 @@ void CatalogManager::unmap(off_t pos,index_t *indextable){
     blockoffset += sizeof(size_t);
     for(int i = 0;i<indextable->numofcol;i++){
         memset(name, 0, NAME_LENGTH);
-        strcpy(name, indextable->name.c_str());
+        strcpy(name, indextable->col[i].c_str());
         //fwrite(name, sizeof(char)*NAME_LENGTH, 1, fp);
         bm->writeBuffer(filename, blockindex, name, blockoffset, sizeof(char)*NAME_LENGTH);
         blockoffset += sizeof(char)*NAME_LENGTH;

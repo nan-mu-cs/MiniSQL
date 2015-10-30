@@ -49,8 +49,9 @@ namespace sqlstruct{
 	};
 	
 	struct create_col_list{
-		std::vector<std::string> primarykey;
-		//std::vector<std::string> indexkey;
+		//std::vector<std::string> primarykey;
+        std::string primarykey;
+        //std::vector<std::string> indexkey;
 		std::vector<record_t> record;
 	};
 	struct createtable{

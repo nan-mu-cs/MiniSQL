@@ -99,7 +99,9 @@ void Interpreter::Createtable(sqlstruct::createtable &node){
         return ;
     }
     //cm->addTable(node.name, strexec);
+    msg = "";
     api->CreateTable(node, strexec, msg);
+    out << msg << endl;
 }
 
 void Interpreter::DropTable(std::string table){
@@ -109,7 +111,9 @@ void Interpreter::DropTable(std::string table){
         return ;
     }
     //cm->dropTable(table);
+    msg = "";
     api->DropTable(table, pos, msg);
+    out << msg << endl;
 }
 
 void Interpreter::DropIndex(string node){
@@ -119,7 +123,9 @@ void Interpreter::DropIndex(string node){
         return ;
     }
     //cm->dropIndex(node);
+    msg = "";
     api->DropIndex(node, pos, msg);
+    out << msg << endl;
 }
 
 void Interpreter::CreateIndex(sqlstruct::createindex &node){
@@ -145,7 +151,9 @@ void Interpreter::CreateIndex(sqlstruct::createindex &node){
         }
     }
     //cm->addIndex(node, tpos);
+    msg = "";
     api->CreateIndex(node, table, tpos, msg);
+    out << msg << endl;
 }
 
 void Interpreter::ExecFile(std::string filename){
@@ -179,6 +187,7 @@ void Interpreter::InsertValues(sqlstruct::insertvalues node){
     for(int i = 0;i<node.item.size();i++){
         if(node.item[i].data_type == sqlstruct::STRING&&table.col.record[i].data_type>CHARBASE){
             if(node.item[i].value.length()>table.col.record[i].data_type - sqlstruct::CHAR + 1){
+                //out << node.item[i].value.length() << endl;
                 out << "Error : string out of length" << '(' << node.item[i].value <<')' << endl;
                 return ;
             }
@@ -190,7 +199,9 @@ void Interpreter::InsertValues(sqlstruct::insertvalues node){
         }
     }
    // rm->InsertRecord(this->pos, node.item);
+    msg = "";
     api->InsertValues(table, node, pos, msg);
+    out << msg << endl;
 }
 
 void Interpreter::Select(sqlstruct::selecttable node){
@@ -222,7 +233,17 @@ void Interpreter::Select(sqlstruct::selecttable node){
         return ;
     }
    // rm->Search(this->pos, table.col.record, node.where);
-    api->Select(table, node.where, msg);
+    msg = "";
+    vector<vector<string>> result = api->Select(table, node.where, msg);
+    for(int i = 0;i<table.col.record.size();i++)
+        out << table.col.record[i].name << '\t';
+    out << endl;
+    for(int i = 0;i<result.size();i++){
+        for(int j = 0;j<result[i].size();j++)
+            out << result[i][j] << '\t';
+        out << endl;
+    }
+    out << msg << endl;
 }
 
 void Interpreter::Delete(sqlstruct::deletetable node){
@@ -238,6 +259,7 @@ void Interpreter::Delete(sqlstruct::deletetable node){
     }
     //rm->DeleteRecord(this->pos, table.col.record, node.where);
     api->Delete(table, node.where, msg);
+    out << msg << endl;
 }
 
 void Exit(){

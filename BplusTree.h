@@ -870,7 +870,7 @@ template<typename key_t>
             //size_t internalNodeNum;
             //size_t leafNodeNum;
             //size_t height;
-            off_t slot;
+            //off_t slot;
             off_t rootOffset;
             off_t leafOffset;
         } meta;
@@ -1009,7 +1009,11 @@ template<typename key_t>
             std::cout << std::endl;
         }
         bool search(const key_t &key,value_t &value){
+            if(meta.rootOffset == (off_t)-1)
+                return false;
             off_t p = SearchNode(meta.rootOffset, key);
+            if(p == (off_t)-1)
+                return false;
             node_t node;
             node.children = new record_t [meta.order+1];
             map(&node,p);

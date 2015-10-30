@@ -85,7 +85,7 @@ public:
     /*close catalog file*/
     //void Closefile();
     /*add index into catalog, type createindex is define in sqlstruct.h, pos is the addr of head of bpt*/
-    bool addIndex(sqlstruct::createindex index,off_t pos);
+    bool addIndex(sqlstruct::createindex index,off_t tablepos,off_t indexpos);
     /*add table into catalog,name is table name,createstr is the sql cmd that create the table*/
     bool addTable(std::string name,std::string createstr);
     /*find table named name, return exist or not and the addr in catalog file*/
