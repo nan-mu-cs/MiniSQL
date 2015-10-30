@@ -72,12 +72,12 @@ public:
     
     recordPointer insertRecords(string tableName, vector<insertitem>& recordContent, int recordSize);
     
-    vector<vector<string> > selectRecords(string tablename, int recordSize, vector<condition>& conditions, vector<int>& attrTypes);
+    vector<vector<string> > selectRecords(string tablename, int recordSize, const vector<condition>& conditions, const vector<int>& attrTypes);
     
-    vector<vector<string>> deleteRecords(string tableName, int recordSize, vector<condition>& conditions, vector<int>& attrPositions, vector<int>& attrTypes);
+    vector<vector<string>> deleteRecords(string tableName, int recordSize, const vector<condition>& conditions, const vector<int>& attrPositions, const vector<int>& attrTypes);
     
 private:
-    vector<recordPointer> select(string tableName, int recordSize, vector<condition>& conditions, bool returnDeleteKey, vector<int>& attrPositions, vector<int>& attrTypes, vector<vector<string>>& deleteKeys);
+    vector<recordPointer> select(string tableName, int recordSize, const vector<condition>& conditions, bool returnDeleteKey, const vector<int>& attrPositions, const vector<int>& attrTypes, vector<vector<string>>& deleteKeys);
 };
 
 
