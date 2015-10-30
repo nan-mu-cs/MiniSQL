@@ -20,6 +20,9 @@ using std::stringstream;
 void Interpreter::run(){
     FILE *stream;
     string tmp,used,left;
+    out << "********************************" << endl;
+    out << "   Welcome to use our MiniSQL   " << endl;
+    out << "********************************" << endl;
     while(1){
         out << ">>>";
         getline(in,tmp);

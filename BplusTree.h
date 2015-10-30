@@ -28,7 +28,7 @@ namespace bpt {
 #define BLOCKREMAINDER 10000
 #define NODESIZE (sizeof(node_t) - 2*sizeof(struct record_t*) + (meta.order+1)*(meta.keySize + meta.valueSize) + 4
 //char filepath[FILENAME] = "/Users/andyyang/Documents/MiniSQL/MiniSQL/index.txt";
-std::string filepath = "/Users/andyyang/Documents/MiniSQL/MiniSQL/index.txt";
+std::string filepath = "./data/index.data";
 struct mem_t{
     off_t freeblock;
     off_t record_endblock;

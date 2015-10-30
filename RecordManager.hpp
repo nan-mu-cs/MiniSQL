@@ -74,10 +74,10 @@ public:
     
     vector<vector<string> > selectRecords(string tablename, int recordSize, const vector<condition>& conditions, const vector<int>& attrTypes);
     
-    vector<vector<string>> deleteRecords(string tableName, int recordSize, const vector<condition>& conditions, const vector<int>& attrPositions, const vector<int>& attrTypes);
+    vector<vector<string> > deleteRecords(string tableName, int recordSize, const vector<condition>& conditions, const vector<int>& attrPositions, const vector<int>& attrTypes);
     
 private:
-    vector<recordPointer> select(string tableName, int recordSize, const vector<condition>& conditions, bool returnDeleteKey, const vector<int>& attrPositions, const vector<int>& attrTypes, vector<vector<string>>& deleteKeys);
+    vector<recordPointer> select(string tableName, int recordSize, const vector<condition>& conditions, bool returnDeleteKey, const vector<int>& attrPositions, const vector<int>& attrTypes, vector<vector<string> >& deleteKeys);
 };
 
 

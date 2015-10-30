@@ -20,7 +20,7 @@ private:
     hash_t tablehash[HASH_SIZE],indexhash[HASH_SIZE];
     FILE *fp;
     int flevel;
-    std::string filename = "/Users/andyyang/Documents/MiniSQL/MiniSQL/test.txt";
+    std::string filename = "./data/catalog.data";
     void addIndextoTable(off_t tablepos,std::string name);
     void dropIndextoTable(off_t tablepos,std::string name);
     void map(off_t position,hash_t *hashtable);

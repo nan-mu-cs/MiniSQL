@@ -351,6 +351,7 @@ filename: NAME {$$ = $1;}
 	| filename "." NAME {$$ = $1 + "." + $3;}
 	| filename "/" NAME {$$ = $1 + "/" + $3;}
 	| "/" filename {$$ = "/" + $2;}
+	| "." filename {$$ = "." + $2;}
 	; 
 execfile_stmt: EXECFILE filename {$$ = $2; }
 %%

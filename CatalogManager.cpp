@@ -464,7 +464,7 @@ void CatalogManager::Unalloc(off_t pos,size_t size){
 
 }
 void CatalogManager::InitFromEmpty(){
-    fp = fopen(filename.c_str(), "wb+");
+    fp = fopen(filename.c_str(),"wb+");
     fclose(fp);
     meta.tablepos = 1;
     meta.indexpos = 2;

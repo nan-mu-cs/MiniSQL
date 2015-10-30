@@ -19,7 +19,7 @@ public:
     IndexManager *im;
     RecordManager *rm;
     CatalogManager *cm;
-    std::string currentpath = "/Users/andyyang/Documents/MiniSQL/MiniSQL/";
+    std::string currentpath = "./data/";
     void CreateTable(sqlstruct::createtable &table,std::string createstr,std::string &msg);
     void DropTable(std::string name,off_t tablepos,std::string &msg);
     void CreateIndex(sqlstruct::createindex &index,sqlstruct::createtable &table,off_t tablepos,std::string &msg);//not add msg
