@@ -48,7 +48,7 @@ struct Float{
         return a.value<b.value;
     }
     friend bool operator==(const struct Float &a,const struct Float &b){
-        return a.value == b.value;
+        return fabs(a.value - b.value)<0.00001;
     }
     friend bool operator>=(const struct Float &a,const struct Float &b){
         return a.value>=b.value;
@@ -82,7 +82,9 @@ struct String{
         return strcmp(a.value,b.value)<=0;
     }
     friend bool operator==(const struct String &a,const struct String &b){
-        return strcmp(a.value, b.value) == 0;
+        if(a.size!=b.size)
+            return false;
+        else return strcmp(a.value, b.value) == 0;
     }
     friend bool operator>=(const struct String &a,const struct String &b){
         return strcmp(a.value, b.value)>=0;

@@ -24,9 +24,9 @@ namespace bpt {
 #define RECORD_START_BLOCK 2
 #define META_START_BLOCK 1
 #define BLOCK_HEAD 8
-#define META_SIZE 48
+#define META_SIZE sizeof(meta_t)
 #define BLOCKREMAINDER 10000
-#define NODESIZE (sizeof(node_t) - 2*sizeof(struct record_t*) + (meta.order+1)*sizeof(struct record_t)) + 4
+#define NODESIZE (sizeof(node_t) - 2*sizeof(struct record_t*) + (meta.order+1)*(meta.keySize + meta.valueSize) + 4
 //char filepath[FILENAME] = "/Users/andyyang/Documents/MiniSQL/MiniSQL/index.txt";
 std::string filepath = "/Users/andyyang/Documents/MiniSQL/MiniSQL/index.txt";
 struct mem_t{
@@ -36,6 +36,13 @@ struct mem_t{
     off_t meta_nowblock;
     off_t meta_endblock;
 } mem;
+struct meta_t{
+    size_t order;
+    size_t valueSize;
+    size_t keySize;
+    off_t rootOffset;
+    off_t leafOffset;
+};
 FILE *fp;
 BufferManager *bm;
 int fp_level;
@@ -100,6 +107,8 @@ off_t AllocMeta(){
 }
 template<typename key_t>
     class BplusTree{
+    public:
+        meta_t meta;
     private:
         struct record_t{
             key_t key;
@@ -322,7 +331,8 @@ template<typename key_t>
                 if(key.cmp(key,node.children[i].key))
                     break;
             int j = 0;
-            node.children[node.n+1].value = node.children[node.n-1].value;
+            if(node.n)
+                node.children[node.n+1].value = node.children[node.n-1].value;
             for(j = node.n;j>i;j--)
                 node.children[j] = node.children[j-1];
             node.children[i].key = key;
@@ -863,17 +873,6 @@ template<typename key_t>
         }
     public:
         off_t pos;
-        struct meta_t{
-            size_t order;
-            size_t valueSize;
-            size_t keySize;
-            //size_t internalNodeNum;
-            //size_t leafNodeNum;
-            //size_t height;
-            off_t slot;
-            off_t rootOffset;
-            off_t leafOffset;
-        } meta;
         /*
         bool map(meta_t *block,off_t offset,size_t size){
             Openfile();
@@ -979,9 +978,10 @@ template<typename key_t>
             //meta.height = 1;
             //meta.slot = OFFSET_META + sizeof(meta);
             meta.rootOffset = -1;
+            meta.leafOffset = -1;
             meta.keySize = size;
             meta.valueSize = sizeof(value_t);
-            meta.order = (BLOCKSIZE - 3*sizeof(off_t) - sizeof(size_t) - sizeof(bool))/(meta.keySize+meta.valueSize)-1;
+            meta.order = (BLOCKSIZE - 3*sizeof(off_t) - sizeof(size_t) - sizeof(bool) - sizeof(record_t *))/(meta.keySize+meta.valueSize) - 1;
             //meta.valueSize = sizeof(record_t)*(meta.order+1);
             //unmap(&meta,pos,sizeof(meta));
             unmap(pos);
@@ -1009,7 +1009,11 @@ template<typename key_t>
             std::cout << std::endl;
         }
         bool search(const key_t &key,value_t &value){
+            if(meta.rootOffset == (off_t)-1)
+                return false;
             off_t p = SearchNode(meta.rootOffset, key);
+            if(p == (off_t)-1)
+                return false;
             node_t node;
             node.children = new record_t [meta.order+1];
             map(&node,p);
@@ -1161,7 +1165,7 @@ template<typename key_t>
     template<> template<>
     void BplusTree<Float>::Write(int index,int &offset,Float &ele){
         //fwrite(&ele.value,sizeof(Float),1,fp);
-        bm->constReadBuffer(filepath, index, &ele.value, offset, sizeof(Float));
+        bm->writeBuffer(filepath, index, &ele.value, offset, sizeof(Float));
         offset += sizeof(Float);
     }
 }

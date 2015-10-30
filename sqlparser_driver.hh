@@ -104,16 +104,17 @@ class sqlparser_driver{
 			if(root == NULL)
 				return ;
 			if(root->isleaf){
-                std::cout << root->value.value << std::endl;
+                //std::cout << root->value.value << std::endl;
 				return ;
 			}
+            /*
 			if(root->operate == sqlstruct::NOT||root->operate == sqlstruct::ISNULL){
 				std::cout << root->operate << std::endl;
 				evalASTree(root->left);
-			}
+			}*/
 			else {
 				evalASTree(root->left);
-                std::cout << root->operate << std::endl;
+                //std::cout << root->operate << std::endl;
 				evalASTree(root->right);
 			}
 		}

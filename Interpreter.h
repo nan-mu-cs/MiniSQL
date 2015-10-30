@@ -12,7 +12,7 @@
 #include <iostream>
 #include "sqlparser_driver.hh"
 #include "CatalogManager.h"
-#include "RManager.h"
+#include "API.h"
 using std::istream;
 using std::ostream;
 class Interpreter:public sqlparser_driver{
@@ -32,10 +32,10 @@ public:
     void run();
     Interpreter(istream &is,ostream &os,CatalogManager* cm):in(is),out(os){
         this->cm = cm;
-        rm = NULL;
     }
     off_t pos;
-    RecordManager *rm;
+    API *api;
+    string msg;
     void Createtable(sqlstruct::createtable &node);
     void DropTable(std::string table);//done
     void DropIndex(std::string node);//done

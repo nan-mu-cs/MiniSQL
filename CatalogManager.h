@@ -13,47 +13,11 @@
 #include "sqlstruct.h"
 #include "sqlparser_driver.hh"
 #include "BufferManager.hpp"
+using namespace catalog;
 class CatalogManager:public sqlparser_driver{
 private:
-#define NAME_LENGTH 32
-#define HASH_SIZE 102
-#define MAX_PRIMARY_COL 10
-#define MAXNUM_INDEX 10
-#define MAXNUM_COL 10
-#define MAXNUM_ATTR 3
-#define BLOCKSIZE 4096
-#define BLOCKREMAINDER 10000
-#define BLOCK_HEAD_SIZE 8
-#define STORAGE_START_BLOCK 3
-    struct meta_t{
-        off_t tablepos;
-        off_t indexpos;
-        off_t freeblock;
-        off_t head,end;
-    }meta;
-    struct record_t {
-        std::string name;
-        int datatype;
-        std::string attr[MAXNUM_ATTR];
-    };
-    struct hash_t{
-        std::string name;
-        off_t pos;
-    } tablehash[HASH_SIZE],indexhash[HASH_SIZE];
-    struct table_t{
-        //sqlstruct::createtable table;
-        std::string createstr;
-        size_t numofIndex;
-        std::string index[MAXNUM_INDEX];
-        off_t pos;
-    };
-    struct index_t{
-        std::string name;
-        std::string table;
-        size_t numofcol;
-        std::string col[MAXNUM_COL];
-        off_t pos;
-    };
+    meta_t meta;
+    hash_t tablehash[HASH_SIZE],indexhash[HASH_SIZE];
     FILE *fp;
     int flevel;
     std::string filename = "/Users/andyyang/Documents/MiniSQL/MiniSQL/test.txt";
@@ -121,13 +85,16 @@ public:
     /*close catalog file*/
     //void Closefile();
     /*add index into catalog, type createindex is define in sqlstruct.h, pos is the addr of head of bpt*/
-    bool addIndex(sqlstruct::createindex index,off_t pos);
+    bool addIndex(sqlstruct::createindex index,off_t tablepos,off_t indexpos);
     /*add table into catalog,name is table name,createstr is the sql cmd that create the table*/
     bool addTable(std::string name,std::string createstr);
     /*find table named name, return exist or not and the addr in catalog file*/
     bool FindTable(std::string name,off_t &position);
+    //void UpdateTable(off_t tablepos,table_t &table){unmap(tablepos, table);}
+    table_t FindTable(off_t tablepos);
     /*find index named name, return exist or not and the addr in catalog file*/
     bool FindIndex(std::string name,off_t &position);
+    index_t FindIndex(off_t indexpos);
     /*get table info , createtable is define in sqlstruct.h, pos is the addr of catalog that store the table*/
     sqlstruct::createtable GetTableSchema(off_t pos);
     /*drop table named name*/

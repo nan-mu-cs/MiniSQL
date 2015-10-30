@@ -123,21 +123,21 @@ void IndexManager::InitFromFile(){
 }
 off_t IndexManager::newIndex(int dataType){
     if(dataType == sqlstruct::INTNUM){
-        bpt::BplusTree<Integer> tree;
         off_t pos = AllocMeta();
+        bpt::BplusTree<Integer> tree(pos,true);
         tree.BuildNewTree(pos, sizeof(Integer));
         return pos;
     }
     else if(dataType == sqlstruct::FLOATNUM){
-        bpt::BplusTree<Float> tree;
         off_t pos = AllocMeta();
+        bpt::BplusTree<Float> tree(pos,true);
         tree.BuildNewTree(pos, sizeof(Float));
         return pos;
     }
     else {
-        int size = dataType - sqlstruct::CHAR;
-        bpt::BplusTree<String> tree;
+        int size = dataType - sqlstruct::CHAR + 1;
         off_t pos = AllocMeta();
+        bpt::BplusTree<String> tree(pos,true);
         tree.BuildNewTree(pos, sizeof(size_t) + size);
         return pos;
     }

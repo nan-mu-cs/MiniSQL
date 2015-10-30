@@ -10,14 +10,30 @@
 #include "BufferManager.hpp"
 #include "BlockForBuffer.hpp"
 #include "RecordManager.hpp"
-
-
+#include "IndexManager.h"
+#include "API.h"
+#include "CatalogManager.h"
+#include "Interpreter.h"
 //for test
 BufferManager bm = BufferManager();
 
 
 int main(int argc, const char * argv[]) {
-    
+    RecordManager rm;
+    IndexManager im;
+    API api;
+    CatalogManager cm;
+    Interpreter it(std::cin,std::cout,&cm);
+    api.rm = &rm;
+    api.im = &im;
+    api.cm = &cm;
+    im.SetBuffer(bm);
+    im.InitFromEmpty();
+    cm.SetBuffer(bm);
+    cm.InitFromEmpty();
+    it.api = &api;
+    it.run();
+    /*
     RecordManager rm;
     string fname = "/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile";
     rm.createTableFile("/Users/laoreja/study/DB/MiniSQL/MiniSQL/createTableFile");
@@ -130,6 +146,7 @@ int main(int argc, const char * argv[]) {
         printf("%s: %d - %u\n", ipv[i].first.c_str(), ipv[i].second.blockNum, ipv[i].second.offset);
     }
     
-    bm.save();
+    bm.save();*/
+    
     return 0;
 }
